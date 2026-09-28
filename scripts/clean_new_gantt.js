@@ -22,6 +22,17 @@ async function main() {
     console.log(`- ${r.job_no}: status=${r.status}, pmt_accepted=${r.pmt_accepted}, tasks=${r.tasks_count}, areas=${r.areas_count}`);
   });
 
+  // 1.5. If JOB-R2609019 is PLANNED, reset it back to NEW
+  await pool.query(`
+    UPDATE core_jobs 
+    SET status = 'NEW', 
+        pmt_accepted = false, 
+        pmt_accepted_at = NULL, 
+        tasks = '[]'::jsonb, 
+        areas = '[]'::jsonb
+    WHERE job_no = 'JOB-R2609019' AND status = 'PLANNED';
+  `);
+
   // 2. Clear tasks and areas for jobs that are still NEW or unaccepted
   const updateRes = await pool.query(`
     UPDATE core_jobs 

@@ -61,7 +61,8 @@ export default function OrdersPage() {
     return null;
   };
 
-  // Step 1: รับงาน strictly contains active queue items.
+  // Step 1: รับงาน strictly contains pending intake queue items awaiting acceptance.
+  // Once accepted or moved to PLANNED/WAIT_QC, jobs move to Step 2 (Project & Gantt) or Step 3 (QC).
   // All closed/completed/delivered jobs belong in Step 4: ปิดงาน (/completed).
   const isJobClosed = (j: any) =>
     j.status === 'COMPLETED' ||
@@ -72,16 +73,35 @@ export default function OrdersPage() {
     j.status === 'CLOSEJOB' ||
     (j as any).stk_status === 'DELIVERED';
 
-  // Fetch jobs defaulting to created_at descending
+  const isStep1Queue = (j: any) => {
+    // Strictly exclude accepted or moved jobs (no PLANNED, no WAIT_QC, no IN_PROGRESS, no closed)
+    if ((j as any).pmt_accepted === true) return false;
+    const st = String(j.status || '').toUpperCase();
+    if (
+      st === 'PLANNED' || 
+      st === 'WAIT_QC' || 
+      st === 'IN_PROGRESS' || 
+      st === 'QC_PENDING' || 
+      st === 'PASSED' ||
+      st === 'ACCEPTED' ||
+      isJobClosed(j)
+    ) {
+      return false;
+    }
+    return true;
+  };
+
+  // Fetch jobs defaulting to created_at descending, restricted to Step 1 queue
   const { data, isLoading } = useJobs({ 
     page: 1, 
     limit: 100, 
     sort_by: 'created_at', 
-    sort_order: 'desc' 
+    sort_order: 'desc',
+    step: 'step1'
   });
   const rawJobs: Job[] = Array.isArray(data) ? data : (data?.data || []);
   const allJobs: Job[] = React.useMemo(() => {
-    return rawJobs.filter(j => !isJobClosed(j));
+    return rawJobs.filter(j => isStep1Queue(j));
   }, [rawJobs]);
 
   const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
