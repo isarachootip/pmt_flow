@@ -90,31 +90,7 @@ export default function OrdersPage() {
     }
   };
 
-  // Base jobs filtered by type (for calculating status tab counts)
-  const jobsForStatusCounts = React.useMemo(() => {
-    if (typeFilter === 'all') return allJobs;
-    return allJobs.filter(j => getJobType(j) === typeFilter);
-  }, [allJobs, typeFilter]);
 
-  // State Machine Status Counts (scoped to current type filter)
-  const statusCounts = React.useMemo(() => {
-    const counts = { all: jobsForStatusCounts.length, NEW: 0, WAIT_QC: 0, PLANNED: 0, COMPLETED: 0 };
-    for (const j of jobsForStatusCounts) {
-      if (j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted) counts.NEW++;
-      else if (j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK') counts.WAIT_QC++;
-      else if (j.status === 'PLANNED' || j.status === 'BOQ') counts.PLANNED++;
-      else if (
-        j.status === 'COMPLETED' || 
-        j.status === 'PASSED' || 
-        j.status === 'QC_PASSED' || 
-        j.status === 'QC_PASS' || 
-        j.status === 'CLOSED' || 
-        j.status === 'CLOSEJOB' || 
-        (j as any).stk_status === 'DELIVERED'
-      ) counts.COMPLETED++;
-    }
-    return counts;
-  }, [jobsForStatusCounts]);
 
   // Base jobs filtered by status (for calculating type tab counts)
   const jobsForTypeCounts = React.useMemo(() => {
@@ -310,7 +286,7 @@ export default function OrdersPage() {
       minWidth: 130,
       cell: ({ row }) => {
         const name = typeof row.customer === 'string' ? row.customer : (row.customer?.name || (row as any).customer_name || '-');
-        return <span className="text-black font-medium truncate block max-w-[155px]" title={name}>{name}</span>;
+        return <span className="text-black font-semibold text-sm truncate block max-w-[155px]" title={name}>{name}</span>;
       } 
     },
     { 
@@ -324,7 +300,7 @@ export default function OrdersPage() {
         else if ((row as any).customer_phone) phone = (row as any).customer_phone;
         else if ((row as any).customerPhone) phone = (row as any).customerPhone;
         else if ((row as any).phone) phone = (row as any).phone;
-        return <span className="text-black font-mono whitespace-nowrap">{phone}</span>;
+        return <span className="text-black font-mono text-sm font-medium whitespace-nowrap">{phone}</span>;
       } 
     },
     { 
@@ -335,7 +311,7 @@ export default function OrdersPage() {
       cell: ({ row }) => {
         const val = row.booking_no || (row as any).bookingNo || (row as any).vfix_no;
         return val ? (
-          <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-medium whitespace-nowrap block w-fit">
+          <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 border border-gray-300 text-black font-semibold whitespace-nowrap block w-fit">
             {val}
           </span>
         ) : (
@@ -351,7 +327,7 @@ export default function OrdersPage() {
       cell: ({ row }) => {
         const val = row.ticket_no || (row as any).ticketNo || (row as any).ticket_number;
         return val ? (
-          <span className="font-mono text-xs px-2 py-0.5 rounded bg-yellow-50 border border-yellow-300 text-black font-medium whitespace-nowrap">
+          <span className="font-mono text-xs px-2 py-0.5 rounded bg-yellow-50 border border-yellow-300 text-black font-bold whitespace-nowrap">
             {val}
           </span>
         ) : (
@@ -367,11 +343,11 @@ export default function OrdersPage() {
       cell: ({ row }) => {
         const rawDate = row.plan_date || (row as any).appointment_date || (row as any).survey_date || (row as any).date;
         if (!rawDate) {
-          return <span className="text-black font-medium">-</span>;
+          return <span className="text-black font-medium text-sm">-</span>;
         }
         const dateFormatted = formatDMY(rawDate);
         if (dateFormatted === '-') {
-          return <span className="text-black font-medium">-</span>;
+          return <span className="text-black font-medium text-sm">-</span>;
         }
 
         const rawTime = (row.plan_time || (row as any).time_slot || (row as any).schedule_plan?.time_slot || (row as any).survey_time || (row as any).time || (row as any).appointment_time || '') as string;
@@ -379,8 +355,8 @@ export default function OrdersPage() {
 
         return (
           <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span className="text-black font-medium">{dateFormatted}</span>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-blue-50 border border-blue-200 text-black">
+            <span className="text-black font-medium text-sm">{dateFormatted}</span>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-blue-50 border border-blue-200 text-black">
               {displayTime}
             </span>
           </div>
@@ -397,11 +373,11 @@ export default function OrdersPage() {
         const code = row.store_code || (row as any).store?.code || row.branch_code || '';
         const display = branch || code || '-';
         return (
-          <span className="text-black text-xs truncate block max-w-[120px]" title={display}>
+          <span className="text-black text-sm truncate block max-w-[120px]" title={display}>
             {display}
           </span>
         );
-      }
+      } 
     },
     { 
       id: 'services', 
@@ -410,7 +386,7 @@ export default function OrdersPage() {
       minWidth: 140,
       cell: ({ row }) => {
         const text = Array.isArray(row.services) ? row.services.join(', ') : (row.services || (row as any).project_sub_type || '-');
-        return <div className="truncate max-w-[180px] text-black" title={text}>{text}</div>;
+        return <div className="truncate max-w-[180px] text-black text-sm font-medium" title={text}>{text}</div>;
       } 
     },
     { 
@@ -501,42 +477,8 @@ export default function OrdersPage() {
     <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
       <PageHeader title="รับงาน & คิวงาน" pageKey="orders" actions={actions} />
       
-      {/* State Machine Status Filter Pills & Job Type Filter */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 pb-3 border-b border-soft">
-        {/* Left: State Machine Status Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { key: 'all', label: 'ทั้งหมด', count: statusCounts.all },
-            { key: 'NEW', label: 'รอรับงาน (NEW)', count: statusCounts.NEW },
-            { key: 'WAIT_QC', label: 'รอตรวจ QC (WAIT_QC)', count: statusCounts.WAIT_QC },
-            { key: 'PLANNED', label: 'วางแผน (PLANNED)', count: statusCounts.PLANNED },
-            { key: 'COMPLETED', label: 'เสร็จสิ้น (COMPLETED)', count: statusCounts.COMPLETED },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setStatusFilter(tab.key)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                statusFilter === tab.key
-                  ? 'bg-blue-600 text-white shadow-xs font-bold'
-                  : 'bg-white text-black border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
-                  statusFilter === tab.key
-                    ? 'bg-blue-700 text-white'
-                    : 'bg-gray-200 text-black'
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Right: Job Type Filter (Quick vs Renovate) */}
+      {/* Job Type Filter (Quick vs Renovate) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 pb-3 border-b border-soft">
         <div className="flex items-center gap-1.5 bg-gray-50/90 p-1 rounded-xl border border-gray-300 shadow-2xs">
           <span className="text-xs font-bold text-black px-2 hidden sm:inline-flex items-center gap-1.5">
             <Filter className="w-3.5 h-3.5 text-black" />
