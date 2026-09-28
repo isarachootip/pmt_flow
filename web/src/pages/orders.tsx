@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useJobs, useAcceptJob, Job } from '@/features/jobs/api';
+import { useJobs, Job } from '@/features/jobs/api';
 import { PageHeader } from '@/components/ui/page-header';
 import { MasterDetailLayout } from '@/components/ui/master-detail-layout';
 import { DataGrid, ColumnDef } from '@/components/ui/data-grid';
@@ -50,9 +50,6 @@ export default function OrdersPage() {
     navigate(`${location.pathname}${search}`, { replace: true });
   };
 
-  // Accept job mutation (used by "รับงาน" button in the list)
-  const acceptMutation = useAcceptJob();
-
   /** Detect project type → 'Q' = Quick Service, 'R' = Renovate */
   const getJobType = (job: Job): 'Q' | 'R' | null => {
     if (!job) return null;
@@ -63,34 +60,6 @@ export default function OrdersPage() {
     if (jNo.startsWith('JOB-Q') || bNo.startsWith('BK-Q') || jNo.includes('-Q') || bNo.includes('-Q')) return 'Q';
     if (jNo.startsWith('JOB-R') || bNo.startsWith('BK-R') || jNo.includes('-R') || bNo.includes('-R')) return 'R';
     return null;
-  };
-
-  /** Accept a NEW/NEED_REVIEW job and navigate based on type */
-  const handleAcceptFromList = (job: Job, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const jt = getJobType(job);
-    acceptMutation.mutate(
-      { id: job.id, job_type: jt ?? undefined },
-      {
-        onSuccess: (res: any) => {
-          toast.success(res?.message || 'รับงานเข้าสู่ระบบเรียบร้อยแล้ว');
-          if (jt === 'Q') {
-            // Quick Service → step 5 QC
-            navigate(`/qc`);
-          } else if (jt === 'R') {
-            // Renovate → step 4 Gantt / Project
-            navigate(`/gantt`);
-          } else {
-            // Unknown type → open detail panel
-            setSelectedJob(job);
-            if (job.job_no) navigate(`/orders/${job.job_no}${location.search}`, { replace: true });
-          }
-        },
-        onError: (err: any) => {
-          toast.error(err.message || 'ไม่สามารถรับงานได้ กรุณาลองใหม่อีกครั้ง');
-        }
-      }
-    );
   };
 
   // Fetch jobs defaulting to created_at descending
@@ -453,66 +422,6 @@ export default function OrdersPage() {
         const isStkDelivered = (row as any).stk_status === 'DELIVERED' || row.status === 'CLOSED' || row.status === 'CLOSEJOB';
         return <StatusBadge status={isStkDelivered ? 'CLOSEJOB' : (row.status === 'QC_PENDING' ? 'PENDING' : row.status)} />;
       } 
-    },
-    {
-      id: 'action_btn',
-      header: 'จัดการ',
-      width: 130,
-      minWidth: 115,
-      cell: ({ row }) => {
-        const isNew = row.status === 'NEW' || row.status === 'NEED_REVIEW' || !(row as any).pmt_accepted;
-        const jt = getJobType(row);
-        if (isNew) {
-          return (
-            <div className="flex items-center gap-1 whitespace-nowrap">
-              <button
-                type="button"
-                onClick={(e) => handleAcceptFromList(row, e)}
-                disabled={acceptMutation.isPending}
-                className={`text-xs px-2 py-1 rounded font-bold border transition-colors cursor-pointer whitespace-nowrap ${
-                  jt === 'Q'
-                    ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
-                    : jt === 'R'
-                    ? 'bg-orange-600 text-white border-orange-700 hover:bg-orange-700'
-                    : 'bg-green-600 text-white border-green-700 hover:bg-green-700'
-                }`}
-              >
-                {acceptMutation.isPending ? '...' : jt === 'Q' ? '✓ รับ (Q→QC)' : jt === 'R' ? '✓ รับ (R→Gantt)' : 'รับงาน'}
-              </button>
-            </div>
-          );
-        }
-        const isStkDelivered = (row as any).stk_status === 'DELIVERED' || row.status === 'CLOSED' || row.status === 'CLOSEJOB';
-        if (isStkDelivered) {
-          return (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/reports?jobNo=${row.job_no}&tab=timeline`);
-              }}
-              className="text-xs px-2.5 py-1 rounded font-semibold border transition-colors cursor-pointer bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100 whitespace-nowrap flex items-center gap-1"
-              title="เปิดดูข้อมูลทุกมุมมองและประวัติการทำงานในเมนูรายงาน"
-            >
-              <FileText className="w-3.5 h-3.5 text-blue-700" />
-              <span>ดูในรายงาน</span>
-            </button>
-          );
-        }
-
-        return (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRowClick(row);
-            }}
-            className="text-xs px-2.5 py-1 rounded font-semibold border transition-colors cursor-pointer bg-gray-50 text-black border-gray-300 hover:bg-gray-100 whitespace-nowrap"
-          >
-            ดูข้อมูล
-          </button>
-        );
-      }
     },
   ];
 
