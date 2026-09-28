@@ -54,14 +54,14 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   const isQuick = getJobType(job) === 'Q';
 
   // Map legacy / URL tabs to the pipeline steps:
-  // [งาน/Task] -> [ผัง Gantt] -> [BOQ] -> [QC] -> [ส่งออก STK] -> [ประวัติ (Timeline)]
+  // [งาน/Task] -> [BOQ] -> [ผัง Gantt] -> [QC] -> [ส่งออก STK] -> [ประวัติ (Timeline)]
   const rawTab = (searchParams.get('tab') || defaultTab).toLowerCase().trim();
   let normalizedTab = rawTab;
   if (rawTab === 'history' || rawTab === 'inspection' || rawTab === 'qc') normalizedTab = 'qc';
   else if (rawTab === 'finance' || rawTab === 'export' || rawTab === 'stk' || rawTab === 'ส่งออก') normalizedTab = 'stk';
   else if (rawTab === 'blueprint' || rawTab === 'tasks' || rawTab === 'task' || rawTab === 'งาน') normalizedTab = 'task';
-  else if (rawTab === 'gantt' || rawTab === 'แผนงาน' || rawTab === 'ผังงาน' || rawTab === 'chart') normalizedTab = 'gantt';
   else if (rawTab === 'boq' || rawTab === 'pricing') normalizedTab = 'boq';
+  else if (rawTab === 'gantt' || rawTab === 'แผนงาน' || rawTab === 'ผังงาน' || rawTab === 'chart') normalizedTab = 'gantt';
   else if (rawTab === 'timeline' || rawTab === 'audit' || rawTab === 'logs') normalizedTab = 'timeline';
   
   // If Quick job, disable and disallow boq and gantt tabs!
@@ -69,7 +69,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
     normalizedTab = 'task';
   }
 
-  const validTabs = ['task', 'gantt', 'boq', 'qc', 'stk', 'timeline'];
+  const validTabs = ['task', 'boq', 'gantt', 'qc', 'stk', 'timeline'];
   const activeTab = validTabs.includes(normalizedTab) ? normalizedTab : 'task';
 
   const { data: tasksData, isLoading: isLoadingTasks } = useJobTasks(job.id);
@@ -499,17 +499,6 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                 งาน/Task
               </TabsTrigger>
               <TabsTrigger 
-                value="gantt" 
-                disabled={isQuick}
-                title={isQuick ? "งาน Quick Service ไม่มีขั้นตอนผัง Gantt" : "ผังกำหนดการทำงาน (Gantt Chart)"}
-                className={`data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4 py-3 ${
-                  isQuick ? 'opacity-40 cursor-not-allowed text-gray-400' : 'text-black'
-                }`}
-              >
-                <span>ผัง Gantt</span>
-                {isQuick && <span className="ml-1 text-[10px] text-gray-400">(ไม่ใช้)</span>}
-              </TabsTrigger>
-              <TabsTrigger 
                 value="boq" 
                 disabled={isQuick}
                 title={isQuick ? "งาน Quick Service ไม่มีขั้นตอน BOQ (ข้ามไปตรวจ QC Online ทันที)" : "ประมาณการราคาและรายการพัสดุ (BOQ)"}
@@ -519,6 +508,17 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               >
                 <span>BOQ</span>
                 {isQuick && <span className="ml-1 text-[10px] text-gray-400 font-normal">(ไม่ใช้ใน Quick)</span>}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="gantt" 
+                disabled={isQuick}
+                title={isQuick ? "งาน Quick Service ไม่มีขั้นตอนผัง Gantt" : "ผังกำหนดการทำงาน (Gantt Chart)"}
+                className={`data-[state=active]:border-b-2 data-[state=active]:border-primary font-semibold rounded-none shadow-none px-4 py-3 ${
+                  isQuick ? 'opacity-40 cursor-not-allowed text-gray-400' : 'text-black'
+                }`}
+              >
+                <span>Gantt</span>
+                {isQuick && <span className="ml-1 text-[10px] text-gray-400">(ไม่ใช้)</span>}
               </TabsTrigger>
               <TabsTrigger 
                 value="qc" 
@@ -640,7 +640,32 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               })()}
             </TabsContent>
 
-            {/* 2. ผัง Gantt (เฉพาะงาน Renovate) */}
+            {/* 2. BOQ (Disabled สำหรับงาน Quick Service) */}
+            <TabsContent value="boq" className="h-full m-0 data-[state=active]:flex flex-col">
+              {isQuick ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center bg-gray-50 border border-gray-200 rounded-xl m-4 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-bold">
+                    Q
+                  </div>
+                  <h3 className="text-base font-bold text-black">งานบริการด่วน (Quick Service) ไม่มีขั้นตอน BOQ</h3>
+                  <p className="text-xs text-gray-600 max-w-md">
+                    งานประเภท Quick Service เป็นบริการติดตั้งด่วนมาตรฐาน ไม่ต้องจัดทำประมาณการราคาและรายการพัสดุ (BOQ) ระบบจะพาเข้าสู่ขั้นตอนตรวจรับรองคุณภาพ QC และส่งออก STK ทันที
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => handleTabChange('qc')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer"
+                  >
+                    ไปที่แท็บ QC ตรวจงาน Online →
+                  </Button>
+                </div>
+              ) : (
+                <BoqTab job={job} />
+              )}
+            </TabsContent>
+
+            {/* 3. ผัง Gantt (เฉพาะงาน Renovate) */}
             <TabsContent value="gantt" className="h-full m-0 data-[state=active]:flex flex-col space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 border border-gray-200 rounded-xl">
                 <div>
@@ -678,32 +703,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               </div>
             </TabsContent>
 
-            {/* 3. BOQ (Disabled สำหรับงาน Quick Service) */}
-            <TabsContent value="boq" className="h-full m-0 data-[state=active]:flex flex-col">
-              {isQuick ? (
-                <div className="flex flex-col items-center justify-center p-12 text-center bg-gray-50 border border-gray-200 rounded-xl m-4 space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-bold">
-                    Q
-                  </div>
-                  <h3 className="text-base font-bold text-black">งานบริการด่วน (Quick Service) ไม่มีขั้นตอน BOQ</h3>
-                  <p className="text-xs text-gray-600 max-w-md">
-                    งานประเภท Quick Service เป็นบริการติดตั้งด่วนมาตรฐาน ไม่ต้องจัดทำประมาณการราคาและรายการพัสดุ (BOQ) ระบบจะพาเข้าสู่ขั้นตอนตรวจรับรองคุณภาพ QC และส่งออก STK ทันที
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={() => handleTabChange('qc')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer"
-                  >
-                    ไปที่แท็บ QC ตรวจงาน Online →
-                  </Button>
-                </div>
-              ) : (
-                <BoqTab job={job} />
-              )}
-            </TabsContent>
-
-            {/* 3. QC (Inline Inspection Workspace - No Popup) */}
+            {/* 4. QC (Inline Inspection Workspace - No Popup) */}
             <TabsContent value="qc" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
               <QcInspectionForm
                 jobId={job.id}
@@ -746,7 +746,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               />
             </TabsContent>
 
-            {/* 4. ส่งออก STK */}
+            {/* 5. ส่งออก STK */}
             <TabsContent value="stk" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
               <div className="p-4 border-b border-gray-200 bg-white text-black space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
@@ -851,7 +851,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               </div>
             </TabsContent>
 
-            {/* 5. ประวัติการดำเนินงาน (Timeline) */}
+            {/* 6. ประวัติการดำเนินงาน (Timeline) */}
             <TabsContent value="timeline" className="h-full m-0 data-[state=active]:flex flex-col space-y-4">
               <JobTimeline jobId={job.id} bookingNo={job.booking_no || (job as any).external_ref_id} />
             </TabsContent>
