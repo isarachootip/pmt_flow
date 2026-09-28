@@ -62,6 +62,7 @@ export function App() {
               <Route path="tickets" element={<RequireRole><Suspense fallback={<PageSkeleton />}><TicketsPage /></Suspense></RequireRole>} />
               <Route path="conversion" element={<RequireRole><Suspense fallback={<PageSkeleton />}><ConversionPage /></Suspense></RequireRole>} />
               <Route path="gantt" element={<RequireRole><Suspense fallback={<PageSkeleton />}><GanttPage /></Suspense></RequireRole>} />
+              <Route path="gantt/:jobNo" element={<RequireRole><Suspense fallback={<PageSkeleton />}><GanttPage /></Suspense></RequireRole>} />
               <Route path="qc" element={<RequireRole><Suspense fallback={<PageSkeleton />}><QcPage /></Suspense></RequireRole>} />
               <Route path="completed" element={<RequireRole><Suspense fallback={<PageSkeleton />}><CompletedPage /></Suspense></RequireRole>} />
               <Route path="blueprints" element={<RequireRole><Suspense fallback={<PageSkeleton />}><BlueprintsPage /></Suspense></RequireRole>} />

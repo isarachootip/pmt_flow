@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Job, useJobTasks } from '@/features/jobs/api';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace'
 import { UserCheck, Camera, ExternalLink, CheckCircle2, ArrowRight } from 'lucide-react';
 import { GanttChart } from '@/features/gantt/gantt-chart';
 import { Task } from '@/features/gantt/api';
+import { DailyLogModal } from '@/features/daily-logs/daily-log-modal';
 
 const STANDARD_PHOTO_SLOTS: PhotoSlot[] = [
   { id: 'before', label: 'ก่อนเริ่มงาน' },
@@ -37,7 +38,10 @@ interface JobDetailTabsProps {
 
 export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: JobDetailTabsProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedDailyLogTask, setSelectedDailyLogTask] = useState<Task | null>(null);
+  const [isDailyLogModalOpen, setIsDailyLogModalOpen] = useState(false);
 
   /** Determine project type from job data */
   const getJobType = (j: Job): 'Q' | 'R' | null => {
@@ -222,7 +226,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
           } else if (jt === 'R') {
             toast.success(res?.message || 'รับงาน Renovate เข้าสู่ระบบและสร้างผัง Gantt เรียบร้อยแล้ว');
             toast.info('เปิดหน้าจอแผนงาน Gantt เพื่อเริ่มดำเนินงานและทำการจอง QC ต่อในระบบ');
-            navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}`);
+            navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}&tab=gantt`);
           } else {
             toast.success(res?.message || 'รับงานเข้าสู่ระบบเรียบร้อยแล้ว');
           }
@@ -248,7 +252,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
           } else if (jt === 'R') {
             toast.success(`รับงานประเภท R (Renovate) และสร้างผัง Gantt เรียบร้อยแล้ว`);
             toast.info('เปิดหน้าจอแผนงาน Gantt เพื่อเริ่มดำเนินงานและทำการจอง QC ต่อในระบบ');
-            navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}`);
+            navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}&tab=gantt`);
           }
         },
         onError: (err: any) => {
@@ -681,21 +685,27 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}`)}
-                    className="text-xs text-indigo-700 bg-white hover:bg-indigo-50 border-indigo-200 font-bold cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>เปิดใน Step 2: Project & Gantt ใหญ่ ↗</span>
-                  </Button>
+                  {!location.pathname.startsWith('/gantt') && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/gantt?jobId=${job.id}&jobNo=${job.job_no}&tab=gantt`)}
+                      className="text-xs text-indigo-700 bg-white hover:bg-indigo-50 border-indigo-200 font-bold cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>เปิดใน Step 2: Project & Gantt ใหญ่ ↗</span>
+                    </Button>
+                  )}
                 </div>
               </div>
 
               <div className="flex-1 min-h-[300px] border border-gray-200 rounded-xl overflow-auto bg-white p-2">
                 <GanttChart
                   tasks={finalGanttTasks}
+                  onOpenDailyLog={(task) => {
+                    setSelectedDailyLogTask(task);
+                    setIsDailyLogModalOpen(true);
+                  }}
                   className="h-full"
                 />
               </div>
@@ -1019,6 +1029,15 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose: _onClose }: J
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Daily Technician Work Log Modal */}
+      <DailyLogModal
+        open={isDailyLogModalOpen}
+        onOpenChange={setIsDailyLogModalOpen}
+        preselectedJobId={job.id}
+        preselectedTaskId={selectedDailyLogTask?.id}
+        preselectedTask={selectedDailyLogTask}
+      />
     </div>
   );
 }
