@@ -97,28 +97,40 @@ flowchart TD
 
 ---
 
-## 🚀 4. การเชื่อมโยงระบบตัดสต็อก STK & ระบบกู้คืน (STK Outbound Integration)
+## 🚀 4. การเชื่อมโยงระบบตัดสต็อก STK & ระบบ WDS (STK / WDS Outbound Integration)
 
-เมื่อ Task ได้รับการประเมินผลขั้นสุดท้าย (`PASSED` หรือ `ESCALATED`) ระบบ PMT จะเรียกใช้งาน **STK Dispatcher** ส่งข้อมูลไปยังระบบ STK ทันทีแบบ Real-time:
+เมื่อ Task หรือ Job ได้รับการประเมินผล QC หรือกดส่งออก STK (Step 6) ระบบ PMT Flow จะเรียกใช้งาน **STK Dispatcher (`dispatchStkSync`)** ส่งข้อมูลไปยังระบบคลังสินค้า STK และแพลตฟอร์ม WDS ทันทีแบบ Real-time:
 
-### โครงสร้างข้อมูล STK Payload (8 ฟิลด์มาตรฐาน):
+### ปลายทางระบบรับข้อมูล (Target Endpoints & Portal):
+- **Outbound Webhook URL:** `https://vwds.online/api/webhooks/pmt-qc` (กำหนดผ่าน `STK_OUTBOUND_WEBHOOK_URL`)
+- **API Key:** `wds_pmt_secure_key_2026` (Header `x-api-key`, กำหนดผ่าน `STK_OUTBOUND_WEBHOOK_API_KEY`)
+- **หน้าจอตรวจสอบผลออนไลน์แบบสด (Live Portal):** [https://vwds.online/wds/pmt-qc](https://vwds.online/wds/pmt-qc)
+
+### โครงสร้างข้อมูล STK / WDS Payload (8 ฟิลด์มาตรฐาน + System Context):
 ```json
 {
   "ref_no": "PMT-202609-001",
   "ticket": "TK-2026-0001",
   "booking_no": "BK-889920",
-  "qc_date": "25/09/2026 14:30:00 น.",
+  "qc_date": "28/09/2026 17:30:00 น.",
+  "qc_recorded_at": "2026-09-28T10:30:00.000Z",
   "customer_name": "คุณสมชาย ใจดี",
   "customer_phone": "0812345678",
   "qc_round": 1,
-  "qc_score": 5
+  "qc_round_text": "ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)",
+  "qc_result": "ผ่านเกณฑ์",
+  "qc_score": 5,
+  "qc_score_text": "5.0 / 5.0 คะแนน",
+  "service": "บริการติดตั้ง",
+  "inspector": "วิชัย ตรวจดี (ช่าง QC Lead)",
+  "full_payload": { ... }
 }
 ```
 
 ### กลไกความทนทานต่อข้อผิดพลาด (Resilience & Retry Mechanism):
 - **Idempotency Key**: ใช้รูปแบบ `STK_${booking_no}_${taskId}_R${qc_round}` เพื่อป้องกันการส่งข้อมูลซ้ำในระดับเครือข่าย
-- **3x Exponential Backoff Retry**: ในกรณีที่ Server ปลายทางของ STK ไม่ตอบสนอง ระบบจะพยายามส่งซ้ำอัตโนมัติ 3 ครั้ง
-- **Manual Retry Recovery**: หากล้มเหลวครบ 3 ครั้ง รายการจะถูกบันทึกลงตาราง `stk_sync_logs` พร้อมสถานะ `SYNC_FAILED` โดยผู้ดูแลระบบสามารถกดส่งซ้ำได้ผ่าน API `POST /api/v1/stk/retry/:idempotencyKey`
+- **3x Exponential Backoff Retry**: ในกรณีที่ Server ปลายทางไม่ตอบสนอง ระบบจะพยายามส่งซ้ำอัตโนมัติ 3 ครั้ง (50ms * 2^attempt)
+- **Manual Retry Recovery**: หากล้มเหลวครบ 3 ครั้ง รายการจะถูกบันทึกลงตาราง `core_stk_sync_logs` พร้อมสถานะ `SYNC_FAILED` โดยผู้ดูแลระบบสามารถกดส่งซ้ำได้ผ่านปุ่มส่งออกในหน้าจอโครงการ หรือ API `POST /api/v1/stk/logs/:id/retry`
 
 ---
 

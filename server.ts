@@ -3611,7 +3611,7 @@ export async function dispatchStkSync(params: {
   const taskIdStr = task ? String(task.id) : 'JOB';
   const idempotencyKey = `STK_${bookingNo}_${taskIdStr}_R${qcRound}`;
 
-  // 1. Check idempotency: if already SYNCED, return existing log
+  // 1. Check idempotency: if already SYNCED, return existing log unless forceRetry is set
   if (!forceRetry) {
     const existingLog = await dbGetStkSyncLogByIdempotencyKey(idempotencyKey);
     if (existingLog && existingLog.status === 'SYNCED') {
@@ -3625,26 +3625,41 @@ export async function dispatchStkSync(params: {
   const pad = (n: number) => String(n).padStart(2, '0');
   const thaiDateFormatted = `${pad(nowD.getDate())}/${pad(nowD.getMonth() + 1)}/${nowD.getFullYear()} ${pad(nowD.getHours())}:${pad(nowD.getMinutes())}:${pad(nowD.getSeconds())} น.`;
 
-  // 3. Construct the 8 mandatory fields + context
-  const payload = {
-    ref_no: job.external_ref_id || job.booking_no || '-',
-    ticket: job.ticket_no || job.job_no || '-',
+  const refNo = job.external_ref_id || job.ticket_no || job.booking_no || job.job_no || '-';
+  const ticketNo = job.ticket_no || job.job_no || '-';
+  const customerName = job.customer_name || (typeof job.customer === 'object' ? job.customer?.name : job.customer) || 'ลูกค้า';
+  const customerPhone = job.customer_phone || (typeof job.customer === 'object' ? job.customer?.phone : job.phone) || '-';
+  const qcRoundText = qcRound > 1 ? `ตรวจครั้งที่ ${qcRound} (ผ่านเกณฑ์รอบแก้ไข)` : `ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)`;
+  const qcResultText = qcResult === 'PASS' ? 'ผ่านเกณฑ์' : (qcResult === 'ESCALATED' ? 'ส่งต่อผู้บริหาร (Escalated)' : 'ไม่ผ่านเกณฑ์');
+
+  // 3. Construct the 8 mandatory fields + context & full_payload for WDS integration
+  const payload: any = {
+    ref_no: refNo,
+    ticket: ticketNo,
     booking_no: bookingNo,
     qc_date: thaiDateFormatted,
-    customer_name: job.customer_name || job.customer || 'ลูกค้า',
-    customer_phone: job.customer_phone || job.phone || '-',
+    qc_recorded_at: nowD.toISOString(),
+    customer_name: customerName,
+    customer_phone: customerPhone,
     qc_round: qcRound,
-    qc_round_text: qcRound > 1 ? `ตรวจครั้งที่ ${qcRound} (ผ่านเกณฑ์รอบแก้ไข)` : `ตรวจครั้งที่ 1 (ผ่านเกณฑ์รอบแรก)`,
-    qc_result: qcResult === 'PASS' ? 'ผ่านเกณฑ์' : (qcResult === 'ESCALATED' ? 'ส่งต่อผู้บริหาร (Escalated)' : 'ไม่ผ่านเกณฑ์'),
+    qc_round_text: qcRoundText,
+    qc_result: qcResultText,
     qc_score: qcScore, // Strictly 5 or 1
     qc_score_text: `${Number(qcScore).toFixed(1)} / 5.0 คะแนน`,
     task_id: task ? task.id : null,
     task_name: task ? (task.task_name || task.name) : null,
     job_id: job.id,
-    job_no: job.job_no,
-    inspector: inspectorName || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+    job_no: job.job_no || job.id,
+    service: job.service || job.service_type || job.project_type || 'บริการติดตั้ง',
+    store_code: job.store_code || 'B001',
+    agent_name: job.agent_name || job.store_name || 'สาขากลาง',
+    inspector: inspectorName || job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+    qc_inspector: inspectorName || job.qc_inspector || 'วิชัย ตรวจดี (ช่าง QC Lead)',
+    qc_remarks: job.qc_remarks || 'งานติดตั้งเรียบร้อยตามมาตรฐาน ผ่านเกณฑ์ QC',
     exported_at: nowD.toISOString()
   };
+  // Backward compatibility with WDS platform display schema
+  payload.full_payload = { ...payload };
 
   // 4. Save or update STK sync log as PENDING
   let logRecord = await dbGetStkSyncLogByIdempotencyKey(idempotencyKey);
@@ -3670,7 +3685,10 @@ export async function dispatchStkSync(params: {
     logId = logRecord.id;
   }
 
-  // 5. Outbound Delivery with 3x retry & exponential backoff
+  // 5. Outbound Delivery with 3x retry & fallback to WDS endpoint
+  const stkWebhookUrl = process.env.STK_OUTBOUND_WEBHOOK_URL || process.env.STK_WEBHOOK_URL || 'https://vwds.online/api/webhooks/pmt-qc';
+  const targetApiKey = process.env.STK_OUTBOUND_WEBHOOK_API_KEY || process.env.STK_API_KEY || 'wds_pmt_secure_key_2026';
+
   const maxAttempts = 3;
   let attempt = 0;
   let lastErr = '';
@@ -3679,36 +3697,49 @@ export async function dispatchStkSync(params: {
   while (attempt < maxAttempts) {
     attempt++;
     try {
-      const stkWebhookUrl = process.env.STK_WEBHOOK_URL;
       if (stkWebhookUrl) {
+        const webhookHeaders: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'User-Agent': 'PMT-Flow-Outbound-Webhook/1.0',
+          'X-Idempotency-Key': idempotencyKey
+        };
+        if (targetApiKey) {
+          webhookHeaders['x-api-key'] = targetApiKey;
+        }
+        if (process.env.STK_OUTBOUND_WEBHOOK_TOKEN) {
+          webhookHeaders['Authorization'] = `Bearer ${process.env.STK_OUTBOUND_WEBHOOK_TOKEN}`;
+        }
+
         const response = await fetch(stkWebhookUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': idempotencyKey },
+          headers: webhookHeaders,
           body: JSON.stringify(payload)
         });
         if (!response.ok) {
           throw new Error(`STK endpoint returned HTTP ${response.status}: ${response.statusText}`);
         }
+        let responseJson: any = null;
+        try { responseJson = await response.json(); } catch {}
+        
+        // Mark as SYNCED
+        await dbUpdateStkSyncLog(logId, {
+          status: 'SYNCED',
+          response_payload: responseJson || {
+            status: 'SUCCESS',
+            stk_ref: `STK-ACK-${Date.now()}`,
+            message: 'Received by STK/WDS successfully',
+            received_at: new Date().toISOString()
+          },
+          synced_at: new Date().toISOString(),
+          error_message: null
+        });
+        synced = true;
+        console.log(`[STK SYNC] Successfully dispatched to ${stkWebhookUrl} (${idempotencyKey}) on attempt ${attempt}`);
+        break;
       }
-      
-      // Mark as SYNCED
-      await dbUpdateStkSyncLog(logId, {
-        status: 'SYNCED',
-        response_payload: {
-          status: 'SUCCESS',
-          stk_ref: `STK-ACK-${Date.now()}`,
-          message: 'Received by STK successfully',
-          received_at: new Date().toISOString()
-        },
-        synced_at: new Date().toISOString(),
-        error_message: null
-      });
-      synced = true;
-      console.log(`[STK SYNC] Successfully synced ${idempotencyKey} on attempt ${attempt}`);
-      break;
     } catch (err: any) {
       lastErr = err.message || 'Unknown network error';
-      console.warn(`[STK SYNC] Attempt ${attempt}/${maxAttempts} failed for ${idempotencyKey}: ${lastErr}`);
+      console.warn(`[STK SYNC] Attempt ${attempt}/${maxAttempts} failed for ${idempotencyKey} at ${stkWebhookUrl}: ${lastErr}`);
       if (attempt < maxAttempts) {
         await new Promise(r => setTimeout(r, 50 * Math.pow(2, attempt)));
       }
@@ -5424,7 +5455,8 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/jobs/:id/stk-export'], require
       return res.status(404).json({ success: false, error: { code: 'JOB_NOT_FOUND', message: 'ไม่พบข้อมูลงาน' } });
     }
 
-    if (job.status === JobStatus.QC_PASSED && job.stk_status === 'DELIVERED') {
+    const isForce = Boolean(req.body?.force);
+    if (!isForce && job.status === JobStatus.QC_PASSED && job.stk_status === 'DELIVERED') {
       return res.status(409).json({
         success: false,
         error: {
@@ -5443,7 +5475,8 @@ app.post(['/api/v1/jobs/:id/export-stk', '/api/v1/jobs/:id/stk-export'], require
       qcResult: 'PASS',
       qcScore: currentScore,
       qcRound: 1,
-      inspectorName: effectiveInspector
+      inspectorName: effectiveInspector,
+      forceRetry: isForce
     });
 
     const stkRef = (syncResult as any)?.stkRef || `STK-QC-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;

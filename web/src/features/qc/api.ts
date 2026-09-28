@@ -113,7 +113,7 @@ export const useExportSTK = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (jobId: number | string) => {
-      const res = await api.post<any>(`/api/v1/jobs/${jobId}/export-stk`, {});
+      const res = await api.post<any>(`/api/v1/jobs/${jobId}/export-stk`, { force: true });
       return res;
     },
     onSuccess: (_, jobId) => {

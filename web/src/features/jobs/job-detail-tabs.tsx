@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
-import { UserCheck, Camera } from 'lucide-react';
+import { UserCheck, Camera, ExternalLink } from 'lucide-react';
 
 const STANDARD_PHOTO_SLOTS: PhotoSlot[] = [
   { id: 'before', label: 'ก่อนเริ่มงาน' },
@@ -256,11 +256,12 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   const handleQcExportSTK = () => {
     stkMutation.mutate(job.id, {
       onSuccess: () => {
-        toast.success(`🚀 ส่งออก STK สำเร็จ (ใบงาน ${job.job_no})`);
+        toast.success(`🚀 ส่งออก STK สำเร็จ (ใบงาน ${job.job_no}) ข้อมูลส่งถึงระบบ WDS เรียบร้อยแล้ว`);
         handleTabChange('stk');
       },
-      onError: () => {
-        toast.success(`🚀 ส่งออก STK สำเร็จ (ใบงาน ${job.job_no}) (จำลอง)`);
+      onError: (err: any) => {
+        const msg = err?.response?.data?.error?.message || err?.message || 'ส่งออก STK ไม่สำเร็จ';
+        toast.error(`⚠️ ${msg}`);
         handleTabChange('stk');
       },
     });
@@ -269,10 +270,11 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
   const handleExportStk = () => {
     stkMutation.mutate(job.id, {
       onSuccess: () => {
-        toast.success(`ส่งออก STK สำเร็จ (ใบงาน ${job.job_no})`);
+        toast.success(`🚀 ส่งออก STK สำเร็จ (ใบงาน ${job.job_no}) ข้อมูลส่งถึงระบบ WDS เรียบร้อยแล้ว`);
       },
-      onError: () => {
-        toast.success(`ส่งออก STK สำเร็จ (ใบงาน ${job.job_no})`);
+      onError: (err: any) => {
+        const msg = err?.response?.data?.error?.message || err?.message || 'ส่งออก STK ไม่สำเร็จ';
+        toast.error(`⚠️ ${msg}`);
       },
     });
   };
@@ -621,14 +623,26 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
                       ส่งข้อมูลงาน, ยอดเงินตาม BOQ และบันทึกค่าใช้จ่ายเพื่อตัดยอดบัญชีในระบบภายนอก
                     </p>
                   </div>
-                  <Button 
-                    variant="primary" 
-                    onClick={handleExportStk} 
-                    disabled={stkMutation.isPending}
-                    className="text-black font-semibold"
-                  >
-                    {stkMutation.isPending ? 'กำลังส่งออก...' : '🚀 ส่งออก STK'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href="https://vwds.online/wds/pmt-qc"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-black font-semibold shadow-xs transition-colors"
+                      title="เปิดหน้าจอตรวจสอบข้อมูล WDS / PMT-QC"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                      <span>เปิดระบบ WDS</span>
+                    </a>
+                    <Button 
+                      variant="primary" 
+                      onClick={handleExportStk} 
+                      disabled={stkMutation.isPending}
+                      className="text-black font-semibold"
+                    >
+                      {stkMutation.isPending ? 'กำลังส่งออก...' : '🚀 ส่งออก STK'}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-xs pt-2">
