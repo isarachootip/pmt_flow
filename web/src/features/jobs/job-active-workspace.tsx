@@ -38,14 +38,43 @@ export function isQuickJob(job: Job): boolean {
   if (!job) return false;
   const pType = String(job.project_type || '').toLowerCase().trim();
   const jType = String((job as any).job_type || '').toLowerCase().trim();
-  return pType.includes('quick') || jType === 'quick' || jType === 'q';
+  if (pType.includes('quick') || pType === 'q' || jType.includes('quick') || jType === 'q') {
+    return true;
+  }
+  if (pType.includes('renovate') || pType === 'r' || jType.includes('renovate') || jType === 'r') {
+    return false;
+  }
+  // Check services array, service, or project_sub_type
+  const svcs: string[] = Array.isArray(job.services)
+    ? job.services
+    : (job.services ? [String(job.services)] : []);
+  const extraSvc = String((job as any).service || (job as any).project_sub_type || '');
+  const combined = [...svcs, extraSvc].join(' ').toLowerCase();
+  if (combined.includes('บริการ q') || combined.includes('q-') || combined.includes('quick')) {
+    return true;
+  }
+  return false;
 }
 
 export function isRenovateJob(job: Job): boolean {
   if (!job) return false;
   const pType = String(job.project_type || '').toLowerCase().trim();
   const jType = String((job as any).job_type || '').toLowerCase().trim();
-  return pType.includes('renovate') || pType === 'r' || jType === 'renovate' || jType === 'r';
+  if (pType.includes('renovate') || pType === 'r' || jType.includes('renovate') || jType === 'r') {
+    return true;
+  }
+  if (pType.includes('quick') || pType === 'q' || jType.includes('quick') || jType === 'q') {
+    return false;
+  }
+  const svcs: string[] = Array.isArray(job.services)
+    ? job.services
+    : (job.services ? [String(job.services)] : []);
+  const extraSvc = String((job as any).service || (job as any).project_sub_type || '');
+  const combined = [...svcs, extraSvc].join(' ').toLowerCase();
+  if (combined.includes('renovate') || combined.includes('รีโนเวท')) {
+    return true;
+  }
+  return false;
 }
 
 export const QUICK_TAGS = [

@@ -16,6 +16,7 @@ import { formatDMY, formatDateTimeDMY, format24HourTimeBadge } from '@/lib/date'
 import { toast } from 'sonner';
 import { PhotoSlots5, PhotoSlot } from '@/components/ui/photo-slots-5';
 import { OrderCustomerSummary } from '@/features/jobs/order-customer-summary';
+import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
 import { UserCheck, Camera } from 'lucide-react';
 
 const STANDARD_PHOTO_SLOTS: PhotoSlot[] = [
@@ -171,11 +172,12 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
 
   /** Determine project type from job data */
   const getJobType = (j: Job): 'Q' | 'R' | null => {
-    const pt = String(j.project_type || (j as any).job_type || '').toLowerCase();
-    if (pt.includes('quick') || pt === 'q') return 'Q';
-    if (pt.includes('renovate') || pt === 'r') return 'R';
+    if (isQuickJob(j)) return 'Q';
+    if (isRenovateJob(j)) return 'R';
     return null;
   };
+
+  const isQuick = getJobType(job) === 'Q';
 
   const handleAcceptJob = () => {
     if (job.status === 'NEED_REVIEW' || (job as any).job_type === 'NEED_REVIEW') {
@@ -598,21 +600,46 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
               </div>
 
               <div className="flex-1 overflow-auto border border-[var(--border-soft)] rounded-lg p-4 space-y-3">
-                <h4 className="font-semibold text-black text-sm">Checklist คุณภาพงานมาตรฐาน (QC Checklist)</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-black text-sm">
+                    {isQuick 
+                      ? 'แบบประเมินมาตรฐานงาน QUICK SERVICE (1 ข้อคำถาม)' 
+                      : 'Checklist คุณภาพงานมาตรฐาน (QC Checklist)'}
+                  </h4>
+                  {isQuick && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-black font-bold">
+                      1 ข้อคำถาม QC
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-2">
-                  {[
-                    { title: '1. ความเรียบร้อยของงานติดตั้งและโครงสร้าง', mandatory: true, status: 'PASS' },
-                    { title: '2. ความปลอดภัยตามมาตรฐานวิศวกรรม', mandatory: true, status: 'PASS' },
-                    { title: '3. คุณภาพวัสดุและอุปกรณ์ตรงตาม BOQ', mandatory: true, status: 'PASS' },
-                    { title: '4. ความสะอาดและความเรียบร้อยของพื้นที่ทำงาน', mandatory: false, status: 'PASS' },
-                    { title: '5. การจัดเก็บเศษวัสดุและขยะออกจากพื้นที่ลูกค้า', mandatory: false, status: 'PASS' },
-                  ].map((item, idx) => (
+                  {(isQuick ? [
+                    { 
+                      title: '1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด', 
+                      subtitle: 'ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ)',
+                      mandatory: true, 
+                      status: 'PASS' 
+                    }
+                  ] : [
+                    { title: '1. ความเรียบร้อยของงานติดตั้งและโครงสร้าง', subtitle: '', mandatory: true, status: 'PASS' },
+                    { title: '2. ความปลอดภัยตามมาตรฐานวิศวกรรม', subtitle: '', mandatory: true, status: 'PASS' },
+                    { title: '3. คุณภาพวัสดุและอุปกรณ์ตรงตาม BOQ', subtitle: '', mandatory: true, status: 'PASS' },
+                    { title: '4. ความสะอาดและความเรียบร้อยของพื้นที่ทำงาน', subtitle: '', mandatory: false, status: 'PASS' },
+                    { title: '5. การจัดเก็บเศษวัสดุและขยะออกจากพื้นที่ลูกค้า', subtitle: '', mandatory: false, status: 'PASS' },
+                  ]).map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-md">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-black font-medium text-sm">{item.title}</span>
-                        {item.mandatory && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 border border-red-300 text-black font-bold">
-                            ข้อบังคับ
+                      <div className="flex flex-col space-y-0.5">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-black font-medium text-sm">{item.title}</span>
+                          {item.mandatory && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 border border-red-300 text-black font-bold">
+                              ข้อบังคับ
+                            </span>
+                          )}
+                        </div>
+                        {item.subtitle && (
+                          <span className="text-xs text-black/70">
+                            {item.subtitle}
                           </span>
                         )}
                       </div>
@@ -691,7 +718,7 @@ export function JobDetailTabs({ job, defaultTab = 'task', onClose }: JobDetailTa
         <DialogContent className="sm:max-w-[600px] bg-white text-black p-6 max-h-[90vh] overflow-y-auto">
           <QcInspectionForm
             jobId={Number(job.id) || 1}
-            jobType={String(job.project_type || (job as any).job_type || '').toUpperCase().includes('Q') ? 'Q' : 'R'}
+            jobType={isQuick ? 'Q' : 'R'}
             previousReworkCount={
               Array.isArray((job as any).qc_history)
                 ? (job as any).qc_history.filter((h: any) => h.outcome === 'REWORK').length

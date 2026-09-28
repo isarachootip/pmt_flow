@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CreateJobDrawer } from '@/features/jobs/create-job-drawer';
+import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
 import { toast } from 'sonner';
 
 export default function OrdersPage() {
@@ -31,9 +32,8 @@ export default function OrdersPage() {
 
   /** Detect project type → 'Q' = Quick Service, 'R' = Renovate */
   const getJobType = (job: Job): 'Q' | 'R' | null => {
-    const pt = String(job.project_type || (job as any).job_type || '').toLowerCase();
-    if (pt.includes('quick') || pt === 'q') return 'Q';
-    if (pt.includes('renovate') || pt === 'r') return 'R';
+    if (isQuickJob(job)) return 'Q';
+    if (isRenovateJob(job)) return 'R';
     return null;
   };
 

@@ -12,6 +12,7 @@ import { JobDetailTabs } from '@/features/jobs/job-detail-tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { QcInspectionForm } from '@/features/qc/qc-inspection-form';
 import { useConfirmBooking, useQCInspection } from '@/features/qc/api';
+import { isQuickJob } from '@/features/jobs/job-active-workspace';
 import { formatDMY } from '@/lib/date';
 
 export default function QcPage() {
@@ -200,7 +201,7 @@ export default function QcPage() {
           {selectedBooking && (
             <QcInspectionForm
               jobId={Number(selectedBooking.job_id) || 1}
-              jobType={String(selectedJob?.project_type || (selectedJob as any)?.job_type || selectedBooking?.project_type || '').toUpperCase().includes('Q') ? 'Q' : 'R'}
+              jobType={isQuickJob(selectedJob || (selectedBooking as any)) ? 'Q' : 'R'}
               previousReworkCount={
                 Array.isArray((selectedJob as any)?.qc_history)
                   ? (selectedJob as any).qc_history.filter((h: any) => h.outcome === 'REWORK').length

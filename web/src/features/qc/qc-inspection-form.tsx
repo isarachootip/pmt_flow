@@ -78,7 +78,7 @@ const SAMPLE_DEMO_PHOTOS: Record<string, string> = {
 
 const MAIN_QUESTION_QUICK: Omit<QcQuestion, 'result' | 'remark'> = {
   id: 'q_quick_main',
-  label: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด (งานติดตั้งถูกต้องตามมาตรฐาน)',
+  label: 'ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด',
   is_mandatory: true,
 };
 
@@ -441,12 +441,12 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                 ตรวจรับรองคุณภาพ QC — ใบงาน #{jobId}
               </h2>
               {isQuick ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 border border-blue-400 text-black">
-                  🔵 Quick Service (1 คำถามมาตรฐาน)
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 border border-amber-300 text-black">
+                  QUICK SERVICE (QC ONLINE)
                 </span>
               ) : (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 border border-orange-400 text-black">
-                  🟠 Renovate Project (1 คำถามหลัก + เพิ่มได้ไม่เกิน 4 ข้อ)
+                  RENOVATE PROJECT (ON-SITE QC)
                 </span>
               )}
             </div>
@@ -548,9 +548,18 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {/* Questions list */}
           <div className="space-y-2.5">
-            <span className="text-xs font-bold text-black block">
-              รายการประเมิน Checklist ({questions.length} ข้อ):
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-black block">
+                {isQuick
+                  ? 'แบบประเมินมาตรฐานงาน QUICK SERVICE (1 ข้อคำถาม) (ประเมิน 1 ยิงจบ | รอบแรกผ่านได้ 5.0 คะแนน, หากเป็นรอบแก้ไขครั้งที่ 2, 3, 4 จะได้ 1.0 คะแนนอัตโนมัติ)'
+                  : `รายการประเมิน Checklist (${questions.length} ข้อ):`}
+              </span>
+              {isQuick && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-black font-bold shrink-0">
+                  1 ข้อคำถาม QC
+                </span>
+              )}
+            </div>
             {questions.map((q, idx) => (
               <div
                 key={q.id}
@@ -569,8 +578,13 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                     </span>
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-semibold text-black block">{q.label}</span>
+                      {isQuick && q.id === 'q_quick_main' && (
+                        <span className="text-xs text-black/70 block mt-0.5">
+                          ข้อคำถามประเมินรับรองมาตรฐาน Quick Service (ตอบ 1 ข้อจบกระบวนการ)
+                        </span>
+                      )}
                       {q.is_mandatory && (
-                        <span className="text-[10px] text-black bg-red-100 border border-red-200 px-1.5 py-0.5 rounded-full font-bold">
+                        <span className="text-[10px] text-black bg-red-100 border border-red-200 px-1.5 py-0.5 rounded-full font-bold inline-block mt-1">
                           ★ คำถามหลัก (บังคับ)
                         </span>
                       )}

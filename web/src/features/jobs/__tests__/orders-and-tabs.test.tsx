@@ -174,13 +174,23 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
     expect(tabTriggers[4]).toHaveTextContent('ประวัติ (Timeline)');
   });
 
-  it('navigates to "QC" tab and displays inspection checklist with pass indicators', () => {
+  it('navigates to "QC" tab and displays inspection checklist with pass indicators for Quick jobs (1 question)', () => {
     renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="qc" />);
+
+    expect(screen.getByText('แบบประเมินมาตรฐานงาน QUICK SERVICE (1 ข้อคำถาม)')).toBeInTheDocument();
+    expect(screen.getByText('1 ข้อคำถาม QC')).toBeInTheDocument();
+    expect(screen.getByText('1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด')).toBeInTheDocument();
+    expect(screen.getByText('เปิดแบบฟอร์มตรวจ QC')).toBeInTheDocument();
+  });
+
+  it('displays full 5-item checklist for Renovate jobs in QC tab', () => {
+    const renovateJob = mockJobs[1]; // Renovate job
+    renderWithProviders(<JobDetailTabs job={renovateJob} defaultTab="qc" />);
 
     expect(screen.getByText('Checklist คุณภาพงานมาตรฐาน (QC Checklist)')).toBeInTheDocument();
     expect(screen.getByText('1. ความเรียบร้อยของงานติดตั้งและโครงสร้าง')).toBeInTheDocument();
     expect(screen.getByText('2. ความปลอดภัยตามมาตรฐานวิศวกรรม')).toBeInTheDocument();
-    expect(screen.getByText('เปิดแบบฟอร์มตรวจ QC')).toBeInTheDocument();
+    expect(screen.getByText('3. คุณภาพวัสดุและอุปกรณ์ตรงตาม BOQ')).toBeInTheDocument();
   });
 
   it('navigates to "ส่งออก STK" tab and displays STK ref, status, and export button', () => {
@@ -224,7 +234,7 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
     u1();
 
     const { unmount: u2 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="inspection" />);
-    expect(screen.getByText('Checklist คุณภาพงานมาตรฐาน (QC Checklist)')).toBeInTheDocument();
+    expect(screen.getByText(/แบบประเมินมาตรฐานงาน QUICK SERVICE|Checklist คุณภาพงานมาตรฐาน/)).toBeInTheDocument();
     u2();
 
     const { unmount: u3 } = renderWithProviders(<JobDetailTabs job={sampleJob} defaultTab="export" />);
