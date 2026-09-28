@@ -416,7 +416,15 @@ export async function initDatabase(): Promise<boolean> {
       ON CONFLICT (username) DO NOTHING;
     `);
 
-    // 3. Auto-seed mock data if core_jobs table is empty
+    // 3. Ensure unaccepted jobs strictly have empty Gantt tasks and areas in DB
+    await client.query(`
+      UPDATE core_jobs 
+      SET tasks = '[]'::jsonb, areas = '[]'::jsonb 
+      WHERE UPPER(status) IN ('NEW', 'NEED_REVIEW', 'DRAFT', 'SURVEYED', 'NEW_ORDER') 
+         OR (pmt_accepted IS FALSE OR pmt_accepted IS NULL);
+    `);
+
+    // 4. Auto-seed mock data if core_jobs table is empty
     const countCheck = await client.query('SELECT COUNT(*)::int AS count FROM core_jobs');
     const existingCount = countCheck.rows[0]?.count || 0;
 
@@ -2080,7 +2088,7 @@ export async function dbSeedMockJobs(): Promise<number> {
         'พื้นที่พร้อมเริ่มงาน ตรวจสอบจุดขนย้ายเศษวัสดุ และประสานงานนิติบุคคลเรียบร้อย',
         'มีรายการ BOQ แนบครบถ้วน พร้อมดึงเข้าระบบ Gantt-chart และกระจายงานสู่ทีมช่าง',
         JSON.stringify(customerObj),
-        JSON.stringify(tasks),
+        JSON.stringify((status === 'NEW' || !pmtAccepted) ? [] : tasks),
         JSON.stringify([]), // R jobs start with empty initial photos, awaiting Daily logs / site inspection
         JSON.stringify(boqItems),
         boqDiscount,
@@ -2089,7 +2097,7 @@ export async function dbSeedMockJobs(): Promise<number> {
         pmtAccepted,
         pmtAccepted ? createdAt : null,
         pmtAccepted,
-        JSON.stringify(areas),
+        JSON.stringify((status === 'NEW' || !pmtAccepted) ? [] : areas),
         createdAt,
         createdAt
       ]);

@@ -2489,7 +2489,38 @@ app.post('/api/v1/jobs/:id/accept', requireAuth, async (req: AuthRequest, res: R
       const baseDate = existingJob.plan_date || new Date().toISOString().slice(0, 10);
       const defaultTech = existingJob.assigned_tech || 'Team A (สมศักดิ์)';
 
-      if (Array.isArray(existingJob.job_details) && existingJob.job_details.length > 0) {
+      if (Array.isArray(existingJob.boq_items) && existingJob.boq_items.length > 0) {
+        let currentDayOffset = 0;
+        tasksToSave = existingJob.boq_items.map((b: any, idx: number) => {
+          const duration = Math.max(1, Number(b.duration_days || b.days || 2));
+          const s = new Date(baseDate);
+          s.setDate(s.getDate() + currentDayOffset);
+          const e = new Date(s);
+          e.setDate(e.getDate() + (duration - 1));
+          currentDayOffset += duration;
+
+          return {
+            id: b.id ? `T_${b.id}` : `T_${param}_${idx + 1}`,
+            job_id: existingJob.id,
+            job_no: existingJob.job_no,
+            area_id: b.area_id || areasToSave[0].id,
+            area_name: b.area_name || areasToSave[0].name,
+            task_name: b.name || b.task_name || `งานปรับปรุง ${idx + 1}`,
+            name: b.name || b.task_name || `งานปรับปรุง ${idx + 1}`,
+            plan_start_date: s.toISOString().slice(0, 10),
+            plan_end_date: e.toISOString().slice(0, 10),
+            duration_days: duration,
+            assigned_tech: b.assigned_tech || defaultTech,
+            status: 'PLANNED',
+            progress_percent: 0,
+            quantity: Number(b.qty || 1),
+            unit: b.unit || 'รายการ',
+            unit_price: Number(b.unit_price || b.price || 0),
+            total_price: Number(b.total_amount || b.amount || (Number(b.qty || 1) * Number(b.unit_price || b.price || 0))),
+            remark: b.description || '-'
+          };
+        });
+      } else if (Array.isArray(existingJob.job_details) && existingJob.job_details.length > 0) {
         tasksToSave = existingJob.job_details.map((d: any, idx: number) => {
           const s = new Date(baseDate);
           s.setDate(s.getDate() + (idx * 2));
