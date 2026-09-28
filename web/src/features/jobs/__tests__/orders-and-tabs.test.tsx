@@ -550,6 +550,63 @@ describe('OrdersPage - Master List Features (R1, R2, R3, R5)', () => {
       globalThis.Blob = originalBlob;
     }
   });
+
+  it('renders Job Type Filter pills with correct counts for Quick and Renovate jobs', () => {
+    renderWithProviders(<OrdersPage />);
+
+    // Label
+    expect(screen.getByText('ประเภทงาน:')).toBeInTheDocument();
+
+    // Type pills
+    expect(screen.getByText('งาน Quick')).toBeInTheDocument();
+    expect(screen.getByText('งาน Renovate')).toBeInTheDocument();
+
+    // In mockJobs: total=6, Quick=4 (JOB-001, JOB-003, JOB-004, JOB-006), Renovate=2 (JOB-002, JOB-005)
+    const quickBtn = screen.getByRole('button', { name: /งาน Quick/i });
+    expect(quickBtn).toHaveTextContent('4');
+
+    const renovateBtn = screen.getByRole('button', { name: /งาน Renovate/i });
+    expect(renovateBtn).toHaveTextContent('2');
+  });
+
+  it('filters table by Job Type (Quick vs Renovate) and restores on reset', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<OrdersPage />);
+
+    // Initially all 6 jobs are present
+    expect(screen.getByText('สมชาย ใจดี')).toBeInTheDocument(); // Quick
+    expect(screen.getByText('วิภาดา รักเรียน')).toBeInTheDocument(); // Renovate
+
+    // Click "งาน Quick"
+    const quickBtn = screen.getByRole('button', { name: /งาน Quick/i });
+    await user.click(quickBtn);
+
+    // Only Quick jobs should remain
+    expect(screen.getByText('สมชาย ใจดี')).toBeInTheDocument(); // Quick (JOB-001)
+    expect(screen.getByText('ประสิทธิ์ วิโรจน์')).toBeInTheDocument(); // Quick (JOB-004)
+    expect(screen.getByText('กมลชนก ยิ้มหวาน')).toBeInTheDocument(); // Quick (JOB-003)
+    expect(screen.getByText('ธนากร มิ่งขวัญ')).toBeInTheDocument(); // Quick (JOB-006)
+    expect(screen.queryByText('วิภาดา รักเรียน')).not.toBeInTheDocument(); // Renovate (JOB-002)
+    expect(screen.queryByText('อัญชลี พูลผล')).not.toBeInTheDocument(); // Renovate (JOB-005)
+
+    // Click "งาน Renovate"
+    const renovateBtn = screen.getByRole('button', { name: /งาน Renovate/i });
+    await user.click(renovateBtn);
+
+    // Only Renovate jobs should remain
+    expect(screen.getByText('วิภาดา รักเรียน')).toBeInTheDocument(); // Renovate (JOB-002)
+    expect(screen.getByText('อัญชลี พูลผล')).toBeInTheDocument(); // Renovate (JOB-005)
+    expect(screen.queryByText('สมชาย ใจดี')).not.toBeInTheDocument(); // Quick
+    expect(screen.queryByText('ประสิทธิ์ วิโรจน์')).not.toBeInTheDocument(); // Quick
+
+    // Click "ล้างตัวกรอง"
+    const resetBtn = screen.getByRole('button', { name: /ล้างตัวกรอง/i });
+    await user.click(resetBtn);
+
+    // All jobs restored
+    expect(screen.getByText('สมชาย ใจดี')).toBeInTheDocument();
+    expect(screen.getByText('วิภาดา รักเรียน')).toBeInTheDocument();
+  });
 });
 
 describe('Job Detail Refactoring (2026-09-27 Specification)', () => {

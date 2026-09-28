@@ -9,7 +9,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Input } from '@/components/ui/input';
 import { formatDMY, toDateTime, toISODate, format24HourTimeBadge } from '@/lib/date';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CreateJobDrawer } from '@/features/jobs/create-job-drawer';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
@@ -23,17 +23,45 @@ export default function OrdersPage() {
   // State for search, date range filters, and create drawer
   const [searchQuery, setSearchQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [typeFilter, setTypeFilter] = React.useState<'all' | 'Q' | 'R'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get('type')?.toUpperCase();
+      if (t === 'Q' || t === 'QUICK') return 'Q';
+      if (t === 'R' || t === 'RENOVATE') return 'R';
+    }
+    return 'all';
+  });
   const [startDate, setStartDate] = React.useState(''); // ISO YYYY-MM-DD
   const [endDate, setEndDate] = React.useState(''); // ISO YYYY-MM-DD
   const [showCreateDrawer, setShowCreateDrawer] = React.useState(false);
+
+  // Toggle or set type filter and synchronize with URL search params
+  const handleTypeFilterChange = (newType: 'all' | 'Q' | 'R') => {
+    const targetType = typeFilter === newType && newType !== 'all' ? 'all' : newType;
+    setTypeFilter(targetType);
+    const params = new URLSearchParams(location.search);
+    if (targetType === 'all') {
+      params.delete('type');
+    } else {
+      params.set('type', targetType);
+    }
+    const search = params.toString() ? `?${params.toString()}` : '';
+    navigate(`${location.pathname}${search}`, { replace: true });
+  };
 
   // Accept job mutation (used by "รับงาน" button in the list)
   const acceptMutation = useAcceptJob();
 
   /** Detect project type → 'Q' = Quick Service, 'R' = Renovate */
   const getJobType = (job: Job): 'Q' | 'R' | null => {
+    if (!job) return null;
     if (isQuickJob(job)) return 'Q';
     if (isRenovateJob(job)) return 'R';
+    const jNo = String(job.job_no || '').toUpperCase();
+    const bNo = String(job.booking_no || (job as any).bookingNo || '').toUpperCase();
+    if (jNo.startsWith('JOB-Q') || bNo.startsWith('BK-Q') || jNo.includes('-Q') || bNo.includes('-Q')) return 'Q';
+    if (jNo.startsWith('JOB-R') || bNo.startsWith('BK-R') || jNo.includes('-R') || bNo.includes('-R')) return 'R';
     return null;
   };
 
@@ -93,10 +121,16 @@ export default function OrdersPage() {
     }
   };
 
-  // State Machine Status Counts
+  // Base jobs filtered by type (for calculating status tab counts)
+  const jobsForStatusCounts = React.useMemo(() => {
+    if (typeFilter === 'all') return allJobs;
+    return allJobs.filter(j => getJobType(j) === typeFilter);
+  }, [allJobs, typeFilter]);
+
+  // State Machine Status Counts (scoped to current type filter)
   const statusCounts = React.useMemo(() => {
-    const counts = { all: allJobs.length, NEW: 0, WAIT_QC: 0, PLANNED: 0, COMPLETED: 0 };
-    for (const j of allJobs) {
+    const counts = { all: jobsForStatusCounts.length, NEW: 0, WAIT_QC: 0, PLANNED: 0, COMPLETED: 0 };
+    for (const j of jobsForStatusCounts) {
       if (j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted) counts.NEW++;
       else if (j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK') counts.WAIT_QC++;
       else if (j.status === 'PLANNED' || j.status === 'BOQ') counts.PLANNED++;
@@ -111,9 +145,42 @@ export default function OrdersPage() {
       ) counts.COMPLETED++;
     }
     return counts;
-  }, [allJobs]);
+  }, [jobsForStatusCounts]);
 
-  // Multi-Field Search + Date Range Filter + Creation Date Sorting
+  // Base jobs filtered by status (for calculating type tab counts)
+  const jobsForTypeCounts = React.useMemo(() => {
+    if (statusFilter === 'all') return allJobs;
+    return allJobs.filter(j => {
+      if (statusFilter === 'NEW') return j.status === 'NEW' || j.status === 'NEED_REVIEW' || !(j as any).pmt_accepted;
+      if (statusFilter === 'PLANNED') return j.status === 'PLANNED' || j.status === 'BOQ';
+      if (statusFilter === 'WAIT_QC') return j.status === 'WAIT_QC' || j.status === 'QC_PENDING' || j.status === 'REWORK';
+      if (statusFilter === 'COMPLETED') {
+        return (
+          j.status === 'COMPLETED' || 
+          j.status === 'PASSED' || 
+          j.status === 'QC_PASSED' || 
+          j.status === 'QC_PASS' || 
+          j.status === 'CLOSED' || 
+          j.status === 'CLOSEJOB' || 
+          (j as any).stk_status === 'DELIVERED'
+        );
+      }
+      return j.status === statusFilter;
+    });
+  }, [allJobs, statusFilter]);
+
+  // Job Type Counts (Quick vs Renovate) (scoped to current status filter)
+  const typeCounts = React.useMemo(() => {
+    const counts = { all: jobsForTypeCounts.length, Q: 0, R: 0 };
+    for (const j of jobsForTypeCounts) {
+      const jt = getJobType(j);
+      if (jt === 'Q') counts.Q++;
+      else if (jt === 'R') counts.R++;
+    }
+    return counts;
+  }, [jobsForTypeCounts]);
+
+  // Multi-Field Search + Date Range Filter + Job Type Filter + Creation Date Sorting
   const filteredAndSortedJobs = React.useMemo(() => {
     let result = [...allJobs];
 
@@ -138,6 +205,11 @@ export default function OrdersPage() {
       } else {
         result = result.filter(j => j.status === statusFilter);
       }
+    }
+
+    // 0.1 Job Type Filter (Quick vs Renovate)
+    if (typeFilter !== 'all') {
+      result = result.filter(j => getJobType(j) === typeFilter);
     }
 
     // 1. Multi-Field Search across Customer Name, Phone, Booking No, Ref ID, Job No, Tech, Services, Project Type
@@ -229,7 +301,7 @@ export default function OrdersPage() {
     });
 
     return result;
-  }, [allJobs, searchQuery, startDate, endDate, statusFilter]);
+  }, [allJobs, searchQuery, startDate, endDate, statusFilter, typeFilter]);
 
   const columns: ColumnDef<Job>[] = [
     { 
@@ -502,37 +574,132 @@ export default function OrdersPage() {
     <div className="flex flex-col h-full bg-subtle p-6 overflow-hidden">
       <PageHeader title="รับงาน & คิวงาน" pageKey="orders" actions={actions} />
       
-      {/* State Machine Status Filter Pills */}
-      <div className="flex flex-wrap items-center gap-2 pt-2 pb-3 border-b border-soft">
-        {[
-          { key: 'all', label: 'ทั้งหมด', count: statusCounts.all },
-          { key: 'NEW', label: 'รอรับงาน (NEW)', count: statusCounts.NEW },
-          { key: 'WAIT_QC', label: 'รอตรวจ QC (WAIT_QC)', count: statusCounts.WAIT_QC },
-          { key: 'PLANNED', label: 'วางแผน (PLANNED)', count: statusCounts.PLANNED },
-          { key: 'COMPLETED', label: 'เสร็จสิ้น (COMPLETED)', count: statusCounts.COMPLETED },
-        ].map((tab) => (
+      {/* State Machine Status Filter Pills & Job Type Filter */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 pb-3 border-b border-soft">
+        {/* Left: State Machine Status Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            { key: 'all', label: 'ทั้งหมด', count: statusCounts.all },
+            { key: 'NEW', label: 'รอรับงาน (NEW)', count: statusCounts.NEW },
+            { key: 'WAIT_QC', label: 'รอตรวจ QC (WAIT_QC)', count: statusCounts.WAIT_QC },
+            { key: 'PLANNED', label: 'วางแผน (PLANNED)', count: statusCounts.PLANNED },
+            { key: 'COMPLETED', label: 'เสร็จสิ้น (COMPLETED)', count: statusCounts.COMPLETED },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setStatusFilter(tab.key)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === tab.key
+                  ? 'bg-blue-600 text-white shadow-xs font-bold'
+                  : 'bg-white text-black border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                  statusFilter === tab.key
+                    ? 'bg-blue-700 text-white'
+                    : 'bg-gray-200 text-black'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right: Job Type Filter (Quick vs Renovate) */}
+        <div className="flex items-center gap-1.5 bg-gray-50/90 p-1 rounded-xl border border-gray-300 shadow-2xs">
+          <span className="text-xs font-bold text-black px-2 hidden sm:inline-flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5 text-black" />
+            <span>ประเภทงาน:</span>
+          </span>
+
+          {/* ทั้งหมด */}
           <button
-            key={tab.key}
             type="button"
-            onClick={() => setStatusFilter(tab.key)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              statusFilter === tab.key
-                ? 'bg-blue-600 text-white shadow-xs font-bold'
+            onClick={() => handleTypeFilterChange('all')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              typeFilter === 'all'
+                ? 'bg-gray-900 text-white shadow-xs font-bold'
                 : 'bg-white text-black border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
             }`}
           >
-            <span>{tab.label}</span>
+            <span>ทั้งหมด</span>
             <span
               className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
-                statusFilter === tab.key
+                typeFilter === 'all'
+                  ? 'bg-gray-700 text-white'
+                  : 'bg-gray-200 text-black'
+              }`}
+            >
+              {typeCounts.all}
+            </span>
+          </button>
+
+          {/* งาน Quick (Q) */}
+          <button
+            type="button"
+            onClick={() => handleTypeFilterChange('Q')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              typeFilter === 'Q'
+                ? 'bg-blue-600 text-white shadow-xs font-bold border border-blue-700'
+                : 'bg-white text-black border border-gray-300 hover:bg-blue-50/70 hover:border-blue-300'
+            }`}
+          >
+            <span
+              className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                typeFilter === 'Q'
+                  ? 'bg-blue-800 text-white border border-blue-400'
+                  : 'bg-blue-100 text-blue-900 border border-blue-300'
+              }`}
+            >
+              Q
+            </span>
+            <span>งาน Quick</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                typeFilter === 'Q'
                   ? 'bg-blue-700 text-white'
                   : 'bg-gray-200 text-black'
               }`}
             >
-              {tab.count}
+              {typeCounts.Q}
             </span>
           </button>
-        ))}
+
+          {/* งาน Renovate (R) */}
+          <button
+            type="button"
+            onClick={() => handleTypeFilterChange('R')}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              typeFilter === 'R'
+                ? 'bg-orange-600 text-white shadow-xs font-bold border border-orange-700'
+                : 'bg-white text-black border border-gray-300 hover:bg-orange-50/70 hover:border-orange-300'
+            }`}
+          >
+            <span
+              className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                typeFilter === 'R'
+                  ? 'bg-orange-800 text-white border border-orange-400'
+                  : 'bg-orange-100 text-orange-900 border border-orange-300'
+              }`}
+            >
+              R
+            </span>
+            <span>งาน Renovate</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                typeFilter === 'R'
+                  ? 'bg-orange-700 text-white'
+                  : 'bg-gray-200 text-black'
+              }`}
+            >
+              {typeCounts.R}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter Toolbar */}
@@ -562,7 +729,7 @@ export default function OrdersPage() {
           </div>
 
           {/* Reset button if filter is active */}
-          {(searchQuery || startDate || endDate || statusFilter !== 'all') && (
+          {(searchQuery || startDate || endDate || statusFilter !== 'all' || typeFilter !== 'all') && (
             <Button
               variant="ghost"
               size="sm"
@@ -571,6 +738,7 @@ export default function OrdersPage() {
                 setStartDate('');
                 setEndDate('');
                 setStatusFilter('all');
+                handleTypeFilterChange('all');
               }}
               className="h-9 text-xs text-black font-medium hover:bg-gray-100"
             >
