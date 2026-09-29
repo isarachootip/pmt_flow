@@ -18,10 +18,12 @@ import {
   RotateCcw,
   Send,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Info
 } from 'lucide-react';
 import { formatDateTimeDMY, formatDMY, format24HourTimeBadge } from '@/lib/date';
 import { toast } from 'sonner';
+import { useDailyLogs, DailyLog } from '@/features/daily-logs/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,6 +70,8 @@ export interface QcInspectionFormProps {
   reworkHistory?: ReworkRecord[];
   /** รูปภาพเริ่มต้น (เช่น job.photos) */
   initialPhotos?: any[];
+  /** บันทึกงานช่างประจำวัน (Daily Logs) สำหรับดึงรูปภาพของช่าง */
+  dailyLogs?: DailyLog[];
   onPhotosChange?: (photos: PhotoSlot[]) => void;
   onSubmit: (data: {
     answers?: any[];
@@ -142,6 +146,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
       previousReworkCount = 0,
       reworkHistory = [],
       initialPhotos = [],
+      dailyLogs = [],
       onPhotosChange,
       onSubmit,
       onExportSTK,
@@ -159,6 +164,77 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
 
     // Toggle edit mode if already passed (default view-only banner with option to re-inspect)
     const [isEditMode, setIsEditMode] = React.useState(!isAlreadyPassed && !readOnly);
+
+    // ─── Fetch & Extract Daily Logs Photos for Renovate Jobs ────────────────────
+    const { data: fetchedDailyLogs } = useDailyLogs(jobId);
+    const activeDailyLogs: DailyLog[] = React.useMemo(() => {
+      if (Array.isArray(dailyLogs) && dailyLogs.length > 0) return dailyLogs;
+      if (Array.isArray(fetchedDailyLogs)) return fetchedDailyLogs;
+      return [];
+    }, [dailyLogs, fetchedDailyLogs]);
+
+    // Extract technician photos from daily logs for Renovate jobs
+    const dailyPhotosResult = React.useMemo(() => {
+      if (!Array.isArray(activeDailyLogs) || activeDailyLogs.length === 0) {
+        return { photos: [] as { slotId: string; label: string; url: string }[], availableLogs: [] as DailyLog[], sourceLog: undefined as DailyLog | undefined, totalPhotosCount: 0 };
+      }
+
+      const logsWithPhotos = activeDailyLogs.filter(
+        (l) => Array.isArray(l.photos) && l.photos.length > 0
+      );
+      if (logsWithPhotos.length === 0) {
+        return { photos: [] as { slotId: string; label: string; url: string }[], availableLogs: [] as DailyLog[], sourceLog: undefined as DailyLog | undefined, totalPhotosCount: 0 };
+      }
+
+      // Sort logs: completed logs or highest day_number or newest date first
+      const sortedLogs = [...logsWithPhotos].sort((a, b) => {
+        if (a.is_completed && !b.is_completed) return -1;
+        if (!a.is_completed && b.is_completed) return 1;
+        const dayDiff = (Number(b.day_number) || 0) - (Number(a.day_number) || 0);
+        if (dayDiff !== 0) return dayDiff;
+        const dateA = new Date(a.log_date || 0).getTime();
+        const dateB = new Date(b.log_date || 0).getTime();
+        return dateB - dateA;
+      });
+
+      const preferredLog = sortedLogs[0];
+      const totalPhotosCount = logsWithPhotos.reduce(
+        (sum, l) => sum + (Array.isArray(l.photos) ? l.photos.length : 0),
+        0
+      );
+
+      const defaultSlots = [
+        { id: 'before', label: '1. ก่อนเริ่ม (Before)' },
+        { id: 'progress1', label: '2. ระหว่างทำ #1' },
+        { id: 'progress2', label: '3. ระหว่างทำ #2' },
+        { id: 'test', label: '4. ทดสอบความปลอดภัย' },
+        { id: 'after', label: '5. งานเสร็จสมบูรณ์' },
+      ];
+
+      const photos: { slotId: string; label: string; url: string }[] = [];
+      if (Array.isArray(preferredLog.photos)) {
+        preferredLog.photos.forEach((p: any, idx: number) => {
+          const url = typeof p === 'string' ? p : (p?.url || p?.dataUrl);
+          if (url) {
+            const slotDef = defaultSlots[idx] || { id: `slot_${idx + 1}`, label: `รูปที่ ${idx + 1}` };
+            photos.push({
+              slotId: p?.slot_id || p?.tag || slotDef.id,
+              label: p?.label || p?.title || slotDef.label,
+              url,
+            });
+          }
+        });
+      }
+
+      return {
+        photos,
+        availableLogs: sortedLogs,
+        sourceLog: preferredLog,
+        totalPhotosCount,
+      };
+    }, [activeDailyLogs]);
+
+    const [selectedLogId, setSelectedLogId] = React.useState<string | number | null>(null);
 
     // ─── State: 5 Photo Slots & Intake Photos ──────────────────────────────────
     // 1. Original Intake Photos from Step 1 (รูปเดิมที่รับงานมา)
@@ -199,40 +275,78 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
       return list;
     }, [initialPhotos]);
 
-    // 2. QC 5 Photo Slots (Pre-populated from intake photos so slots are not 0/5)
+    // 2. QC 5 Photo Slots
+    // STRICT FLOW STANDARD:
+    // - For Quick Service: Fast-track using initial photos or demo preset
+    // - For Renovate (On-site QC): MUST strictly source photos from Technician Daily Work Logs (บันทึกประจำวันของช่าง)!
+    //   Never copy Step 1 Intake photos into the inspection slots.
     const [photoSlots, setPhotoSlots] = React.useState<PhotoSlot[]>(() => {
       const slots = DEFAULT_QC_PHOTO_SLOTS.map((s) => ({ ...s }));
-      let hasPopulated = false;
-      if (Array.isArray(initialPhotos) && initialPhotos.length > 0) {
-        initialPhotos.forEach((p: any, idx: number) => {
-          const slotId = p.slot_id || p.tag || (slots[idx] ? slots[idx].id : null);
-          const url = p.url || p.dataUrl || (typeof p === 'string' ? p : undefined);
-          if (slotId) {
-            const match = slots.find((s) => s.id === slotId);
-            if (match && url) {
-              match.url = url;
+
+      if (isQuick) {
+        let hasPopulated = false;
+        if (Array.isArray(initialPhotos) && initialPhotos.length > 0) {
+          initialPhotos.forEach((p: any, idx: number) => {
+            const slotId = p.slot_id || p.tag || (slots[idx] ? slots[idx].id : null);
+            const url = p.url || p.dataUrl || (typeof p === 'string' ? p : undefined);
+            if (slotId) {
+              const match = slots.find((s) => s.id === slotId);
+              if (match && url) {
+                match.url = url;
+                hasPopulated = true;
+              }
+            } else if (slots[idx] && url) {
+              slots[idx].url = url;
               hasPopulated = true;
             }
-          } else if (slots[idx] && url) {
-            slots[idx].url = url;
-            hasPopulated = true;
-          }
-        });
+          });
+        }
+        if (!hasPopulated) {
+          slots.forEach((s) => {
+            if (SAMPLE_DEMO_PHOTOS[s.id]) {
+              s.url = SAMPLE_DEMO_PHOTOS[s.id];
+            }
+          });
+        }
+        return slots;
       }
-      if (!hasPopulated) {
-        slots.forEach((s) => {
-          if (SAMPLE_DEMO_PHOTOS[s.id]) {
-            s.url = SAMPLE_DEMO_PHOTOS[s.id];
+
+      // Renovate: Auto-populate strictly from technician daily log photos if available
+      if (dailyPhotosResult.photos.length > 0) {
+        dailyPhotosResult.photos.forEach((tp, idx) => {
+          const match = slots.find((s) => s.id === tp.slotId) || slots[idx];
+          if (match && tp.url) {
+            match.url = tp.url;
           }
         });
       }
       return slots;
     });
 
+    // Auto-sync when daily logs load asynchronously (for Renovate)
     React.useEffect(() => {
-      if (Array.isArray(initialPhotos) && initialPhotos.length > 0) {
+      if (!isQuick && dailyPhotosResult.photos.length > 0) {
         setPhotoSlots((prev) => {
-          const next = prev.map(s => ({ ...s }));
+          const hasAnyPhoto = prev.some((s) => !!s.url);
+          if (hasAnyPhoto) return prev;
+
+          const next = DEFAULT_QC_PHOTO_SLOTS.map((s) => ({ ...s }));
+          dailyPhotosResult.photos.forEach((tp, idx) => {
+            const match = next.find((s) => s.id === tp.slotId) || next[idx];
+            if (match && tp.url) {
+              match.url = tp.url;
+            }
+          });
+          return next;
+        });
+      }
+    }, [isQuick, dailyPhotosResult]);
+
+    // For Quick Jobs ONLY: Sync from initialPhotos if updated
+    React.useEffect(() => {
+      if (isQuick && Array.isArray(initialPhotos) && initialPhotos.length > 0) {
+        setPhotoSlots((prev) => {
+          const next = prev.map((s) => ({ ...s }));
           let populated = false;
           initialPhotos.forEach((p: any, idx: number) => {
             const slotId = p.slot_id || p.tag || (next[idx] ? next[idx].id : null);
@@ -249,7 +363,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
             }
           });
           if (!populated) {
-            next.forEach(s => {
+            next.forEach((s) => {
               if (!s.url && SAMPLE_DEMO_PHOTOS[s.id]) {
                 s.url = SAMPLE_DEMO_PHOTOS[s.id];
               }
@@ -258,7 +372,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
           return next;
         });
       }
-    }, [initialPhotos]);
+    }, [isQuick, initialPhotos]);
 
     // ─── State: Questions ──────────────────────────────────────────────────────
     // Question 1 is ALWAYS: "1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด" for both Quick and Renovate
@@ -375,7 +489,33 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
       setOverallRemark('');
     };
 
-    // Copy intake photos to QC photo slots
+    // Pull technician photos from daily logs into QC slots
+    const handlePullTechDailyPhotos = (targetLog?: DailyLog) => {
+      const logToUse = targetLog || dailyPhotosResult.sourceLog;
+      if (!logToUse || !Array.isArray(logToUse.photos) || logToUse.photos.length === 0) {
+        toast.warning('⚠️ ไม่พบรูปภาพในบันทึกประจำวันของช่าง (สามารถลงบันทึกงานช่างในแท็บ Gantt หรืออัปโหลดรูปตรงนี้ได้)');
+        return;
+      }
+
+      setSelectedLogId(logToUse.id);
+      const next = DEFAULT_QC_PHOTO_SLOTS.map((s, idx) => {
+        const p: any = logToUse.photos[idx];
+        const url = typeof p === 'string' ? p : (p?.url || p?.dataUrl);
+        return {
+          ...s,
+          url: url || undefined,
+        };
+      });
+
+      setPhotoSlots(next);
+      if (onPhotosChange) onPhotosChange(next);
+      const count = next.filter((s) => !!s.url).length;
+      toast.success(
+        `✓ ดึงรูปภาพจากบันทึกงานช่างประจำวัน (รอบที่ ${logToUse.day_number || 1} วันที่ ${formatDMY(logToUse.log_date)}) เข้ามาครบ ${count} รูปเรียบร้อย`
+      );
+    };
+
+    // Copy intake photos to QC photo slots (Fallback option)
     const handleCopyIntakePhotosToSlots = () => {
       const updated = photoSlots.map((s) => {
         const match = intakePhotosList.find((p) => p.id === s.id);
@@ -386,7 +526,7 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
       });
       setPhotoSlots(updated);
       if (onPhotosChange) onPhotosChange(updated);
-      toast.success('📋 นำรูปถ่ายเดิมจากขั้นตอนรับงานมาใส่ในช่องตรวจ QC ครบทั้ง 5 รูปเรียบร้อย');
+      toast.info('📋 นำรูปถ่ายเดิมจากขั้นตอนรับงานมาใส่ในช่องตรวจ QC เป็นแบบร่างเรียบร้อย');
     };
 
     // ─── Handlers: Photos ──────────────────────────────────────────────────────
@@ -601,10 +741,10 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                 size="sm"
                 onClick={handleCopyIntakePhotosToSlots}
                 className="text-xs h-7 bg-white hover:bg-blue-50 text-blue-900 border-blue-300 flex items-center gap-1 font-bold shadow-2xs cursor-pointer"
-                title="นำรูปเดิมที่รับงานมาใส่ในช่องตรวจสอบคุณภาพ QC ทั้ง 5 ช่อง"
+                title="คัดลอกรูปเดิมที่รับงานมาใส่ในช่องตรวจ QC (ใช้เฉพาะกรณีไม่มีรูปจากบันทึกช่าง)"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-blue-700" />
-                <span>📋 นำรูปเดิมมาใส่ในช่องตรวจ QC</span>
+                <span>📋 ใช้รูปรับงานเป็นแบบร่าง (สำรอง)</span>
               </Button>
             </div>
           </div>
@@ -644,37 +784,62 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
           </div>
         </div>
 
-        {/* 2.5. 📷 Section: รูปถ่ายตรวจสอบคุณภาพหน้างาน (5 รูป) (PhotoSlots 5) */}
+        {/* 2.5. 📷 Section: รูปถ่ายตรวจส่งมอบงานหน้างาน (5 รูป) */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center space-x-2">
               <Camera className="w-4 h-4 text-black" />
-              <h4 className="text-sm font-bold text-black">
-                รูปถ่ายตรวจสอบคุณภาพหน้างาน (5 รูป)
+              <h4 className="text-sm font-bold text-black flex items-center gap-2">
+                <span>รูปถ่ายตรวจส่งมอบงานหน้างาน (5 รูป)</span>
+                {!isQuick && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    จากบันทึกงานช่าง (Daily Logs)
+                  </span>
+                )}
               </h4>
               <span className="text-xs text-black font-medium">
                 (อัปโหลดแล้ว {uploadedPhotosCount}/5 รูป)
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleLoadSamplePhotos}
-                className="text-xs h-7 text-black hover:bg-gray-100 flex items-center gap-1 font-semibold"
-                title="โหลดรูปตัวอย่างสำหรับการสาธิตหรือทดสอบระบบ"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>✨ โหลดรูปตัวอย่าง 5 ภาพ</span>
-              </Button>
+              {!isQuick && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePullTechDailyPhotos()}
+                  className="text-xs h-7 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border-emerald-300 flex items-center gap-1 font-bold shadow-2xs cursor-pointer"
+                  title="ดึงรูปถ่ายหน้างานจริงจากบันทึกประจำวันของช่าง (Daily Technician Logs)"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>⚡ ดึงรูปจากบันทึกงานช่าง</span>
+                  {dailyPhotosResult.totalPhotosCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-200 text-emerald-950 font-mono text-[10px]">
+                      {dailyPhotosResult.totalPhotosCount} รูป
+                    </span>
+                  )}
+                </Button>
+              )}
+              {isQuick && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLoadSamplePhotos}
+                  className="text-xs h-7 text-black hover:bg-gray-100 flex items-center gap-1 font-semibold cursor-pointer"
+                  title="โหลดรูปตัวอย่างสำหรับการสาธิตหรือทดสอบระบบ"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  <span>✨ โหลดรูปตัวอย่าง 5 ภาพ</span>
+                </Button>
+              )}
               {uploadedPhotosCount > 0 && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={handleClearAllPhotos}
-                  className="text-xs h-7 text-red-600 hover:bg-red-50 flex items-center gap-1 font-semibold"
+                  className="text-xs h-7 text-red-600 hover:bg-red-50 flex items-center gap-1 font-semibold cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>ล้างรูปทั้งหมด</span>
@@ -683,8 +848,48 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
             </div>
           </div>
 
+          {/* Daily Log Source Information Strip */}
+          {!isQuick && (
+            dailyPhotosResult.sourceLog ? (
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-950 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    ดึงรูปถ่ายจาก<strong>บันทึกงานช่างประจำวัน</strong>: วันที่ {formatDMY(dailyPhotosResult.sourceLog.log_date)} (รอบที่ {dailyPhotosResult.sourceLog.day_number || 1}) โดย <strong>{dailyPhotosResult.sourceLog.technician || 'ช่างประจำโครงการ'}</strong> ({dailyPhotosResult.photos.length}/5 รูป)
+                  </span>
+                </div>
+                {dailyPhotosResult.availableLogs.length > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-emerald-850 font-semibold">เลือกรอบอื่น:</span>
+                    <select
+                      className="text-xs bg-white border border-emerald-300 rounded px-2 py-0.5 text-black font-semibold cursor-pointer shadow-2xs"
+                      value={selectedLogId || dailyPhotosResult.sourceLog.id}
+                      onChange={(e) => {
+                        const target = dailyPhotosResult.availableLogs.find(l => String(l.id) === e.target.value);
+                        if (target) handlePullTechDailyPhotos(target);
+                      }}
+                    >
+                      {dailyPhotosResult.availableLogs.map((l, i) => (
+                        <option key={l.id || i} value={l.id}>
+                          รอบที่ {l.day_number || (i + 1)} ({formatDMY(l.log_date)}) — {l.photos?.length || 0} รูป
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-950">
+                <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>งาน Renovate ต้องใช้รูปถ่ายจากบันทึกประจำวันของช่าง:</strong> ยังไม่พบรูปในบันทึกช่าง (ช่างสามารถบันทึกผ่านแท็บ <strong>Gantt &gt; บันทึกงานช่าง</strong> หรือผู้ตรวจสามารถกดอัปโหลดรูปตรวจจริงได้ที่นี่)
+                </span>
+              </div>
+            )
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {photoSlots.map((slot) => (
+            {photoSlots.map((slot, sIdx) => (
               <div key={slot.id} className="flex flex-col gap-1.5">
                 <span className="text-xs font-bold text-black truncate" title={slot.label}>
                   {slot.label}
@@ -701,6 +906,12 @@ const QcInspectionForm = React.forwardRef<HTMLDivElement, QcInspectionFormProps>
                           setPreviewPhotoTitle(slot.label);
                         }}
                       />
+                      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-black/70 text-white backdrop-blur-xs flex items-center gap-1">
+                        <span>#{sIdx + 1}</span>
+                        <span className="text-[8px] text-emerald-200">
+                          {!isQuick && dailyPhotosResult.sourceLog ? 'รูปช่าง' : 'รูปตรวจ QC'}
+                        </span>
+                      </div>
                       <div className="absolute top-1.5 right-1.5 flex items-center gap-1 bg-black/60 rounded-md p-0.5">
                         <button
                           type="button"

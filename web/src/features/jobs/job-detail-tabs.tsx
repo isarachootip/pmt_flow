@@ -930,6 +930,7 @@ export function JobDetailTabs({
                     : []
                 }
                 initialPhotos={job.photos}
+                dailyLogs={dailyLogs || job.daily_logs || []}
                 onPhotosChange={(photos) => {
                   setPhotoSlots(photos);
                   const uploadedPhotos = photos

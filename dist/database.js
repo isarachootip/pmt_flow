@@ -2087,6 +2087,55 @@ async function dbSeedMockJobs() {
                 createdAt,
                 createdAt
             ]);
+            // Seed realistic technician daily work logs with 5 distinct photos for Renovate jobs
+            const log1Photos = [
+                'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80',
+                'https://images.unsplash.com/photo-1541888946425-d0fbb18615f8?auto=format&fit=crop&w=600&q=80',
+                'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+                'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=600&q=80',
+                'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80'
+            ];
+            const logId = `LOG_R_${jobIdx}_1`;
+            const firstTask = tasks[0] || { id: `T_R_${jobIdx}_1`, task_name: 'งานปรับปรุงและติดตั้ง', assigned_tech: 'Team A (สมศักดิ์)', duration_days: 3 };
+            await client.query(`
+        INSERT INTO core_daily_work_logs (
+          id, job_id, job_no, task_id, task_name, log_date, start_time, end_time,
+          work_hours, day_number, total_days, technician, recorded_by, reporter_role,
+          progress_percent, work_description, additional_details, issues_encountered, solutions_applied,
+          materials_used, photos, is_completed, is_final_day, supervisor_approved, created_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8,
+          $9, $10, $11, $12, $13, $14,
+          $15, $16, $17, $18, $19,
+          $20, $21, $22, $23, $24, $25
+        ) ON CONFLICT (id) DO NOTHING;
+      `, [
+                logId,
+                String(jobIdx),
+                jobNo,
+                firstTask.id,
+                firstTask.task_name,
+                '2026-09-29',
+                '08:30',
+                '17:00',
+                '8 ชม. 30 นาที',
+                1,
+                Math.max(1, firstTask.duration_days || 3),
+                firstTask.assigned_tech || 'Team A (สมศักดิ์)',
+                firstTask.assigned_tech || 'สมศักดิ์ ช่างเอก',
+                'TECH',
+                40,
+                `รายงานปฏิบัติงานประจำวัน: ตรวจสอบหน้างาน วางแนวท่อประปาและร้อยสายไฟตามแบบแปลน ทดสอบระบบเบื้องต้น เก็บกวาดเรียบร้อย`,
+                `ติดตั้งตามแบบ BOQ หมวด ${template.area_name}`,
+                `ไม่มีปัญหาหรืออุปสรรคหน้างาน`,
+                `ปฏิบัติตามมาตรฐานความปลอดภัย 100%`,
+                `ปูนซีเมนต์, ท่อ PVC ตราช้าง, สายไฟ THW Yazaki`,
+                JSON.stringify(log1Photos),
+                false,
+                false,
+                true,
+                createdAt
+            ]);
             rInserted++;
         }
         // =========================================================================
