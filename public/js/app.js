@@ -23778,10 +23778,10 @@ const app = {
                     }
 
                     return `
-                    <div class="rounded-xl border border-dashed border-border/80 hover:border-cyan-500/60 bg-muted/10 hover:bg-cyan-500/5 transition p-3 flex flex-col items-center justify-center text-center cursor-pointer min-h-[120px] group" onclick="document.getElementById('${prefix}-file-input-${idx}').click()">
+                    <div class="rounded-xl border border-dashed border-border/80 hover:border-cyan-500/60 bg-muted/10 hover:bg-cyan-500/5 transition p-2 sm:p-2.5 flex flex-col items-center justify-center text-center cursor-pointer min-h-[96px] group" onclick="document.getElementById('${prefix}-file-input-${idx}').click()">
                         <input type="file" id="${prefix}-file-input-${idx}" accept="image/*" class="hidden" onchange="app.handleDailyLogPhotoUpload(${idx}, event, '${prefix}')">
-                        <div class="w-8 h-8 rounded-full bg-muted/60 group-hover:bg-cyan-500/15 group-hover:text-cyan-500 flex items-center justify-center text-muted-foreground transition mb-1.5">
-                            <i class="ph ph-camera text-base"></i>
+                        <div class="w-7 h-7 rounded-full bg-muted/60 group-hover:bg-cyan-500/15 group-hover:text-cyan-500 flex items-center justify-center text-muted-foreground transition mb-1">
+                            <i class="ph ph-camera text-sm"></i>
                         </div>
                         <div class="text-[11px] font-bold text-black group-hover:text-cyan-700 transition">
                             รูปที่ ${slotNum}
@@ -23789,7 +23789,7 @@ const app = {
                         <div class="text-[9px] text-muted-foreground line-clamp-1 mt-0.5">
                             ${meta.desc}
                         </div>
-                        <span class="text-[9px] font-semibold text-cyan-700 mt-1 flex items-center gap-0.5 opacity-90">
+                        <span class="text-[9px] font-semibold text-cyan-700 mt-0.5 flex items-center gap-0.5 opacity-90">
                             <i class="ph ph-plus-circle"></i> เลือกรูป/ถ่ายรูป
                         </span>
                     </div>`;
