@@ -18,10 +18,68 @@ export function getJobType(job: Job): 'Q' | 'R' | null {
 
 export interface BuildOrdersColumnsProps {
   visibleColumns: Record<string, boolean>;
+  selectedJobIds?: Set<string | number>;
+  onToggleSelect?: (id: string | number) => void;
+  onToggleSelectAll?: () => void;
+  allSelected?: boolean;
+  onQuickAccept?: (job: Job) => void;
+  acceptingId?: string | number | null;
 }
 
-export function buildOrdersColumns({ visibleColumns }: BuildOrdersColumnsProps): ColumnDef<Job>[] {
-  const allDefs: (ColumnDef<Job> & { id: string })[] = [
+export function buildOrdersColumns({
+  visibleColumns,
+  selectedJobIds,
+  onToggleSelect,
+  onToggleSelectAll,
+  allSelected,
+  onQuickAccept,
+  acceptingId
+}: BuildOrdersColumnsProps): ColumnDef<Job>[] {
+  const allDefs: (ColumnDef<Job> & { id: string })[] = [];
+
+  // 0. Checkbox Selection Column
+  if (selectedJobIds && onToggleSelect) {
+    allDefs.push({
+      id: 'select',
+      header: (
+        <div className="flex items-center justify-center">
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleSelectAll?.();
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            title="เลือกทั้งหมด"
+          />
+        </div>
+      ),
+      width: 40,
+      minWidth: 40,
+      sortable: false,
+      cell: ({ row }) => {
+        const isChecked = selectedJobIds.has(row.id || row.job_no);
+        return (
+          <div className="flex items-center justify-center">
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleSelect(row.id || row.job_no);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+          </div>
+        );
+      }
+    });
+  }
+
+  allDefs.push(
     // 1. Type (Q / R Icon)
     {
       id: 'project_type',
@@ -155,7 +213,28 @@ export function buildOrdersColumns({ visibleColumns }: BuildOrdersColumnsProps):
       cell: ({ row }) => {
         const isStkDelivered = (row as any).stk_status === 'DELIVERED' || row.status === 'CLOSED' || row.status === 'CLOSEJOB';
         const st = isStkDelivered ? 'CLOSEJOB' : (row.status === 'QC_PENDING' ? 'PENDING' : row.status);
-        return <OrderStatusPill status={st} />;
+        const isNew = st === 'NEW' || st === 'WAIT_ACCEPT';
+        const isAcceptingThis = acceptingId === (row.id || row.job_no);
+
+        return (
+          <div className="flex items-center justify-between gap-1 group/status pr-1">
+            <OrderStatusPill status={st} />
+            {isNew && onQuickAccept && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickAccept(row);
+                }}
+                disabled={isAcceptingThis}
+                className="opacity-0 group-hover/status:opacity-100 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-2xs whitespace-nowrap cursor-pointer shrink-0 disabled:opacity-50"
+                title="รับงานทันที"
+              >
+                {isAcceptingThis ? 'กำลังรับ...' : 'รับ'}
+              </button>
+            )}
+          </div>
+        );
       }
     },
 
@@ -260,7 +339,7 @@ export function buildOrdersColumns({ visibleColumns }: BuildOrdersColumnsProps):
         return <span className="text-black text-sm font-medium whitespace-nowrap">{val}</span>;
       }
     }
-  ];
+  );
 
   return allDefs.filter(col => visibleColumns[col.id] !== false);
 }

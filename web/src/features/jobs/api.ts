@@ -214,6 +214,28 @@ export const useAcceptJob = () => {
   });
 };
 
+export const useBulkAcceptJobs = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: (number | string)[]) => {
+      try {
+        const res = await api.post<any>('/api/v1/jobs/bulk-accept', { ids });
+        return res;
+      } catch {
+        // Fallback: accept in parallel if bulk endpoint is not reached
+        const results = await Promise.all(
+          ids.map(id => api.post<any>(`/api/v1/jobs/${id}/accept`, {}))
+        );
+        return { success: true, data: results };
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['jobSummary'] });
+    },
+  });
+};
+
 export const useJobAuditLogs = (jobId: number | string) => {
   return useQuery({
     queryKey: ['jobAuditLogs', jobId],

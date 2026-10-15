@@ -1,4 +1,4 @@
-import{j as e,aQ as m,B as b,r as l,P as g,S as h,s as y,M as S,aI as f}from"./index-B8i6ARS7.js";import{D as j}from"./data-grid-rEHEAxPR.js";import{P as v}from"./printer-C95jXruA.js";const C=[{id:1,code:"KM-GEN-001",title:"คู่มือขั้นตอนการใช้งานระบบ PMT Flow v2 (สำหรับแอดมินและผู้จัดการ)",category:"General",updatedAt:"26/09/2026",summary:"ภาพรวมระบบ Pipeline 4 ขั้นตอน, การจัดการผู้ใช้, การกำหนดสิทธิ์ และการตรวจสอบ Logs",content:`
+import{j as e,aQ as m,B as b,r as l,P as g,S as h,v as y,M as S,aI as f}from"./index-BODYMb1C.js";import{D as j}from"./data-grid-ChXokGYY.js";import{P as v}from"./printer-D2J_WF_F.js";const C=[{id:1,code:"KM-GEN-001",title:"คู่มือขั้นตอนการใช้งานระบบ PMT Flow v2 (สำหรับแอดมินและผู้จัดการ)",category:"General",updatedAt:"26/09/2026",summary:"ภาพรวมระบบ Pipeline 4 ขั้นตอน, การจัดการผู้ใช้, การกำหนดสิทธิ์ และการตรวจสอบ Logs",content:`
 ### 1. ภาพรวมของระบบ (System Overview)
 ระบบ PMT Flow v2 ทำงานในรูปแบบ 4-Step Pipeline มาตรฐาน:
 - **Step 1: รับงาน (Orders)** — รับคำสั่งซื้อใหม่และคิวงาน Active Queue (ทั้ง Quick Service และ Renovate)

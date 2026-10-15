@@ -1944,6 +1944,56 @@ app.post('/api/v1/jobs/:id/accept', requireAuth, async (req, res) => {
         return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
     }
 });
+// POST /api/v1/jobs/bulk-accept — Accept multiple jobs from queue
+app.post('/api/v1/jobs/bulk-accept', requireAuth, async (req, res) => {
+    try {
+        const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+        if (ids.length === 0) {
+            return res.status(400).json({ success: false, error: { code: 'EMPTY_LIST', message: 'กรุณาระบุรหัสงานที่ต้องการรับ' } });
+        }
+        const results = [];
+        const errors = [];
+        for (const id of ids) {
+            try {
+                const existingJob = await (0, database_1.dbGetJob)(id);
+                if (!existingJob) {
+                    errors.push({ id, error: 'ไม่พบข้อมูลงาน' });
+                    continue;
+                }
+                let effectiveType = existingJob.job_type ? String(existingJob.job_type).toUpperCase().trim() : null;
+                if (!effectiveType || effectiveType === 'NEED_REVIEW') {
+                    const classified = classifyJobType(existingJob);
+                    effectiveType = classified.job_type;
+                }
+                if (effectiveType === 'NEED_REVIEW') {
+                    effectiveType = 'Q';
+                }
+                const nextStatus = effectiveType === 'Q' ? JobStatus.WAIT_QC : JobStatus.PLANNED;
+                const oldStatus = existingJob.status;
+                const updatePayload = {
+                    pmt_accepted: true,
+                    pmt_accepted_at: new Date().toISOString(),
+                    job_type: effectiveType,
+                    status: nextStatus
+                };
+                const updatedJob = await (0, database_1.dbUpdateJob)(id, updatePayload);
+                await recordAudit(req, 'BULK_ACCEPT_JOB', 'JOB', updatedJob.id || id, updatedJob.booking_no || existingJob.booking_no, { status: oldStatus }, { status: nextStatus, job_type: effectiveType }, { accepted_by: req.currentUser?.full_name, role: req.currentUser?.role });
+                results.push(updatedJob);
+            }
+            catch (e) {
+                errors.push({ id, error: e.message });
+            }
+        }
+        return res.status(200).json({
+            success: true,
+            message: `รับงานสำเร็จ ${results.length} รายการ${errors.length > 0 ? ` (ไม่สำเร็จ ${errors.length} รายการ)` : ''}`,
+            data: { accepted: results, errors }
+        });
+    }
+    catch (err) {
+        return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    }
+});
 // PATCH /api/v1/jobs/:id/classify — Classify / Override Job Type (Q or R)
 app.patch('/api/v1/jobs/:id/classify', requireAuth, async (req, res) => {
     try {

@@ -4,7 +4,7 @@ import { Inbox, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
 export interface ColumnDef<TData> {
   id: string;
-  header: string;
+  header: string | React.ReactNode;
   accessorKey?: keyof TData;
   cell?: (props: { row: TData; index: number }) => React.ReactNode;
   width?: number;

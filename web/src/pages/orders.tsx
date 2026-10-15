@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useJobs, Job } from '@/features/jobs/api';
+import { useJobs, useAcceptJob, useBulkAcceptJobs, Job } from '@/features/jobs/api';
 import { PageHeader } from '@/components/ui/page-header';
 import { MasterDetailLayout } from '@/components/ui/master-detail-layout';
 import { DataGrid } from '@/components/ui/data-grid';
@@ -12,6 +12,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CreateJobDrawer } from '@/features/jobs/create-job-drawer';
 import { useResponsive } from '@/lib/use-responsive';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { toast } from 'sonner';
 
 import { buildOrdersColumns } from '@/features/orders/orders-columns';
 import {
@@ -22,6 +23,10 @@ import {
 import { OrdersMobileCardList } from '@/features/orders/orders-mobile-card';
 import { exportOrdersToCSV } from '@/features/orders/orders-export-csv';
 import { useOrdersFilter } from '@/features/orders/use-orders-filter';
+import { OrdersStatusChips } from '@/features/orders/orders-status-chips';
+import { OrdersDatePresets } from '@/features/orders/orders-date-presets';
+import { OrdersBulkBar } from '@/features/orders/orders-bulk-bar';
+import { OrdersIntSyncIndicator } from '@/features/orders/orders-int-sync-indicator';
 
 export default function OrdersPage() {
   const navigate = useNavigate();
@@ -29,7 +34,7 @@ export default function OrdersPage() {
   const { jobNo } = useParams<{ jobNo?: string }>();
   const [showCreateDrawer, setShowCreateDrawer] = React.useState(false);
 
-  // Step 1: Active queue validation
+  // Step 1: Active intake queue validation
   const isJobClosed = (j: any) =>
     j.status === 'COMPLETED' ||
     j.status === 'PASSED' ||
@@ -56,7 +61,7 @@ export default function OrdersPage() {
     return true;
   };
 
-  const { data, isLoading } = useJobs({
+  const { data, isLoading, refetch } = useJobs({
     page: 1,
     limit: 100,
     sort_by: 'created_at',
@@ -73,24 +78,88 @@ export default function OrdersPage() {
     return allJobs.some(j => Boolean(j.ticket_no || (j as any).ticketNo || (j as any).ticket_number));
   }, [allJobs]);
 
-  // Filters & Sorting state
+  // Filters & Sorting state from custom hook
   const {
     searchQuery,
     setSearchQuery,
     typeFilter,
     handleTypeFilterChange,
+    statusFilter,
+    handleStatusFilterChange,
+    datePreset,
+    handleSelectDatePreset,
     startDate,
-    setStartDate,
+    handleCustomStartDateChange,
     endDate,
-    setEndDate,
+    handleCustomEndDateChange,
     sortField,
     sortDirection,
     handleSort,
     resetFilters,
     isFilterActive,
     typeCounts,
+    statusCounts,
     filteredAndSortedJobs
   } = useOrdersFilter(allJobs);
+
+  // Multi-selection state
+  const [selectedJobIds, setSelectedJobIds] = React.useState<Set<string | number>>(new Set());
+
+  const handleToggleSelect = (id: string | number) => {
+    setSelectedJobIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedJobIds.size === filteredAndSortedJobs.length && filteredAndSortedJobs.length > 0) {
+      setSelectedJobIds(new Set());
+    } else {
+      setSelectedJobIds(new Set(filteredAndSortedJobs.map(j => j.id || j.job_no)));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedJobIds(new Set());
+  };
+
+  // Job acceptance mutations
+  const acceptJobMutation = useAcceptJob();
+  const bulkAcceptMutation = useBulkAcceptJobs();
+  const [acceptingId, setAcceptingId] = React.useState<string | number | null>(null);
+
+  const handleQuickAccept = async (job: Job) => {
+    const id = job.id || job.job_no;
+    setAcceptingId(id);
+    try {
+      await acceptJobMutation.mutateAsync({ id });
+      toast.success(`รับงาน ${job.job_no} เรียบร้อยแล้ว`);
+      setSelectedJobIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } catch (err: any) {
+      toast.error(err.message || `เกิดข้อผิดพลาดในการรับงาน ${job.job_no}`);
+    } finally {
+      setAcceptingId(null);
+    }
+  };
+
+  const handleBulkAccept = async () => {
+    if (selectedJobIds.size === 0) return;
+    const ids = Array.from(selectedJobIds);
+    try {
+      const res = await bulkAcceptMutation.mutateAsync(ids);
+      toast.success(res?.message || `รับงาน ${ids.length} รายการเรียบร้อยแล้ว`);
+      setSelectedJobIds(new Set());
+    } catch (err: any) {
+      toast.error(err.message || 'เกิดข้อผิดพลาดในการรับงานกลุ่ม');
+    }
+  };
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = React.useState<Record<string, boolean>>(() =>
@@ -150,18 +219,29 @@ export default function OrdersPage() {
     navigate(`/orders${location.search}`, { replace: true });
   };
 
+  const allSelected = filteredAndSortedJobs.length > 0 && selectedJobIds.size === filteredAndSortedJobs.length;
+
   const columns = React.useMemo(() => {
-    return buildOrdersColumns({ visibleColumns });
-  }, [visibleColumns]);
+    return buildOrdersColumns({
+      visibleColumns,
+      selectedJobIds,
+      onToggleSelect: handleToggleSelect,
+      onToggleSelectAll: handleToggleSelectAll,
+      allSelected,
+      onQuickAccept: handleQuickAccept,
+      acceptingId
+    });
+  }, [visibleColumns, selectedJobIds, allSelected, acceptingId]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden select-text">
+    <div className="flex flex-col h-full overflow-hidden select-text relative">
       {/* Page Header */}
       <PageHeader
         title="รับงาน & คิวงาน"
         pageKey="orders_v2"
         actions={
           <div className="flex items-center gap-2">
+            <OrdersIntSyncIndicator onRefresh={() => refetch()} isRefreshing={isLoading} />
             <Button
               variant="outline"
               size="sm"
@@ -182,79 +262,90 @@ export default function OrdersPage() {
           </div>
         }
       >
-        {/* Job Type Filter Chips */}
-        <div className="flex items-center gap-1.5 mt-2">
-          <span className="text-xs font-bold text-black mr-1">ประเภท:</span>
-          <button
-            type="button"
-            onClick={() => handleTypeFilterChange('all')}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-              typeFilter === 'all'
-                ? 'bg-black text-white shadow-xs font-bold'
-                : 'bg-white text-black border border-gray-300 hover:bg-gray-100'
-            }`}
-          >
-            <span>ทั้งหมด</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                typeFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-gray-200 text-black'
+        <div className="flex flex-wrap items-center gap-3 mt-1.5">
+          {/* Job Type Filter Chips */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-black mr-0.5">ประเภท:</span>
+            <button
+              type="button"
+              onClick={() => handleTypeFilterChange('all')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                typeFilter === 'all'
+                  ? 'bg-black text-white shadow-xs font-bold'
+                  : 'bg-white text-black border border-gray-300 hover:bg-gray-100'
               }`}
             >
-              {typeCounts.all}
-            </span>
-          </button>
+              <span>ทั้งหมด</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                  typeFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-gray-200 text-black'
+                }`}
+              >
+                {typeCounts.all}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTypeFilterChange('Q')}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-              typeFilter === 'Q'
-                ? 'bg-blue-600 text-white shadow-xs font-bold border border-blue-700'
-                : 'bg-white text-black border border-gray-300 hover:bg-blue-50/70 hover:border-blue-300'
-            }`}
-          >
-            <span
-              className={`inline-flex items-center justify-center px-1 py-0.2 rounded text-[9px] font-bold ${
-                typeFilter === 'Q' ? 'bg-blue-800 text-white border border-blue-400' : 'bg-blue-100 text-blue-900 border border-blue-300'
+            <button
+              type="button"
+              onClick={() => handleTypeFilterChange('Q')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                typeFilter === 'Q'
+                  ? 'bg-blue-600 text-white shadow-xs font-bold border border-blue-700'
+                  : 'bg-white text-black border border-gray-300 hover:bg-blue-50/70 hover:border-blue-300'
               }`}
             >
-              Q
-            </span>
-            <span>งาน Quick</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                typeFilter === 'Q' ? 'bg-blue-700 text-white' : 'bg-gray-200 text-black'
-              }`}
-            >
-              {typeCounts.Q}
-            </span>
-          </button>
+              <span
+                className={`inline-flex items-center justify-center px-1 py-0.2 rounded text-[9px] font-bold ${
+                  typeFilter === 'Q' ? 'bg-blue-800 text-white border border-blue-400' : 'bg-blue-100 text-blue-900 border border-blue-300'
+                }`}
+              >
+                Q
+              </span>
+              <span>งาน Quick</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                  typeFilter === 'Q' ? 'bg-blue-700 text-white' : 'bg-gray-200 text-black'
+                }`}
+              >
+                {typeCounts.Q}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleTypeFilterChange('R')}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-              typeFilter === 'R'
-                ? 'bg-orange-600 text-white shadow-xs font-bold border border-orange-700'
-                : 'bg-white text-black border border-gray-300 hover:bg-orange-50/70 hover:border-orange-300'
-            }`}
-          >
-            <span
-              className={`inline-flex items-center justify-center px-1 py-0.2 rounded text-[9px] font-bold ${
-                typeFilter === 'R' ? 'bg-orange-800 text-white border border-orange-400' : 'bg-orange-100 text-orange-900 border border-orange-300'
+            <button
+              type="button"
+              onClick={() => handleTypeFilterChange('R')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                typeFilter === 'R'
+                  ? 'bg-orange-600 text-white shadow-xs font-bold border border-orange-700'
+                  : 'bg-white text-black border border-gray-300 hover:bg-orange-50/70 hover:border-orange-300'
               }`}
             >
-              R
-            </span>
-            <span>งาน Renovate</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                typeFilter === 'R' ? 'bg-orange-700 text-white' : 'bg-gray-200 text-black'
-              }`}
-            >
-              {typeCounts.R}
-            </span>
-          </button>
+              <span
+                className={`inline-flex items-center justify-center px-1 py-0.2 rounded text-[9px] font-bold ${
+                  typeFilter === 'R' ? 'bg-orange-800 text-white border border-orange-400' : 'bg-orange-100 text-orange-900 border border-orange-300'
+                }`}
+              >
+                R
+              </span>
+              <span>งาน Renovate</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                  typeFilter === 'R' ? 'bg-orange-700 text-white' : 'bg-gray-200 text-black'
+                }`}
+              >
+                {typeCounts.R}
+              </span>
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-gray-300 hidden sm:block" />
+
+          {/* Status Filter Chips */}
+          <OrdersStatusChips
+            statusFilter={statusFilter}
+            onStatusFilterChange={handleStatusFilterChange}
+            counts={statusCounts}
+          />
         </div>
       </PageHeader>
 
@@ -262,7 +353,7 @@ export default function OrdersPage() {
       <div className="flex flex-wrap items-center justify-between gap-2 py-1 px-1 shrink-0">
         <div className="flex flex-wrap items-center gap-2">
           {/* Multi-field search */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-black" />
             <Input
               value={searchQuery}
@@ -272,14 +363,18 @@ export default function OrdersPage() {
             />
           </div>
 
-          {/* Date range filter */}
+          {/* Date range filter with presets */}
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-black whitespace-nowrap">ช่วงวันที่:</span>
+            <OrdersDatePresets
+              currentPreset={datePreset}
+              onSelectPreset={handleSelectDatePreset}
+            />
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
+              onStartDateChange={handleCustomStartDateChange}
+              onEndDateChange={handleCustomEndDateChange}
               className="bg-white [&_input]:h-8 [&_input]:text-xs [&_button]:h-8"
             />
           </div>
@@ -377,6 +472,14 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      <OrdersBulkBar
+        selectedCount={selectedJobIds.size}
+        isAccepting={bulkAcceptMutation.isPending}
+        onAcceptAll={handleBulkAccept}
+        onClearSelection={handleClearSelection}
+      />
 
       {/* Tablet Slide-Over Drawer (~70% width) */}
       {isTablet && (
