@@ -252,33 +252,34 @@ describe('OrdersPage - Master List Features (R1, R2, R3, R5)', () => {
     } as any);
   });
 
-  it('displays Booking No and Ticket columns visibly in the master table (R1)', () => {
+  it('displays Booking No visibly in the master table (Phase 2)', () => {
     renderWithProviders(<OrdersPage />);
 
-    // Headers
-    expect(screen.getByText('Booking No')).toBeInTheDocument();
-    expect(screen.getByText('Ticket')).toBeInTheDocument();
+    // Header
+    expect(screen.getByText('รหัสงาน & Booking')).toBeInTheDocument();
 
     // Data rows
     expect(screen.getByText('BK-88991')).toBeInTheDocument();
     expect(screen.getByText('BK-99002')).toBeInTheDocument();
   });
 
-  it('defaults table sorting to created_at descending with secondary sort by id descending (R2)', () => {
+  it('defaults table sorting to earliest appointment date ascending (Phase 2)', () => {
     renderWithProviders(<OrdersPage />);
 
-    // created_at dates & IDs:
-    // JOB-2026-004: 2026-09-24, id: 4 (1st)
-    // JOB-2026-002: 2026-09-24, id: 2 (2nd)
-    // JOB-2026-003: 2026-09-22 (3rd)
-    // JOB-2026-001: 2026-09-20 (4th)
+    // Earliest plan_date order:
+    // JOB-2026-003: 2026-09-22 (1st)
+    // JOB-2026-001: 2026-09-25 (2nd)
+    // JOB-2026-002: 2026-09-28 (3rd)
+    // JOB-2026-005: 2026-09-30 (4th)
+    // JOB-2026-006: 2026-10-01 (5th)
+    // JOB-2026-004: null plan_date placed at bottom (6th)
     const jobCells = screen.getAllByText(/JOB-2026-00[1-6]/);
-    expect(jobCells[0]).toHaveTextContent('JOB-2026-004');
-    expect(jobCells[1]).toHaveTextContent('JOB-2026-002');
-    expect(jobCells[2]).toHaveTextContent('JOB-2026-003');
-    expect(jobCells[3]).toHaveTextContent('JOB-2026-001');
-    expect(jobCells[4]).toHaveTextContent('JOB-2026-005');
-    expect(jobCells[5]).toHaveTextContent('JOB-2026-006');
+    expect(jobCells[0]).toHaveTextContent('JOB-2026-003');
+    expect(jobCells[1]).toHaveTextContent('JOB-2026-001');
+    expect(jobCells[2]).toHaveTextContent('JOB-2026-002');
+    expect(jobCells[3]).toHaveTextContent('JOB-2026-005');
+    expect(jobCells[4]).toHaveTextContent('JOB-2026-006');
+    expect(jobCells[5]).toHaveTextContent('JOB-2026-004');
   });
 
   it('filters list accurately by Customer Name (R1)', async () => {
@@ -515,9 +516,9 @@ describe('OrdersPage - Master List Features (R1, R2, R3, R5)', () => {
     expect(row).toBeInTheDocument();
     // In that row, the plan_date cell should display '-'
     const cells = row!.querySelectorAll('td');
-    // plan_date is column index 8 (1-based: #, job_no, booking_no, ref_id, customer, phone, services, project_type, plan_date)
-    expect(cells[8]).toHaveTextContent('-');
-    expect(cells[8]).not.toHaveTextContent('09:00 น.');
+    // plan_date is column index 3 (0-based: project_type, job_no, customer, plan_date)
+    expect(cells[3]).toHaveTextContent('-');
+    expect(cells[3]).not.toHaveTextContent('09:00 น.');
   });
 
   it('triggers CSV export with correct headers, 24-hr time badges, and no .trim() corruption', async () => {

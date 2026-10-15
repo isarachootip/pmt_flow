@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { Inbox } from 'lucide-react';
+import { Inbox, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
 export interface ColumnDef<TData> {
   id: string;
@@ -9,6 +9,7 @@ export interface ColumnDef<TData> {
   cell?: (props: { row: TData; index: number }) => React.ReactNode;
   width?: number;
   minWidth?: number;
+  sortable?: boolean;
 }
 
 export interface DataGridProps<TData> {
@@ -17,6 +18,10 @@ export interface DataGridProps<TData> {
   selectedRowId?: string;
   onRowSelect?: (row: TData) => void;
   onSort?: (colId: string) => void;
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc';
+  showIndexColumn?: boolean;
+  stickyFirstColumn?: boolean;
   isLoading?: boolean;
   className?: string;
   getRowId: (row: TData) => string;
@@ -28,6 +33,10 @@ function DataGrid<TData>({
   selectedRowId,
   onRowSelect,
   onSort,
+  sortColumn,
+  sortDirection,
+  showIndexColumn = true,
+  stickyFirstColumn = false,
   isLoading,
   className,
   getRowId
@@ -61,8 +70,8 @@ function DataGrid<TData>({
     return columns.reduce((acc, col) => {
       const w = columnWidths[col.id] || col.width || 150;
       return acc + w;
-    }, 48); // 48px for '#' column
-  }, [columns, columnWidths]);
+    }, showIndexColumn ? 48 : 0);
+  }, [columns, columnWidths, showIndexColumn]);
 
   const resizingRef = React.useRef<{
     colId: string;
@@ -134,22 +143,46 @@ function DataGrid<TData>({
       >
         <thead className="sticky top-0 z-10 bg-[var(--bg-subtle)] text-[13px] font-semibold text-black shadow-[0_1px_0_var(--border-soft)]">
           <tr className="border-b border-[#E5E6EB]">
-            <th className="h-9 w-12 border-r border-[#E5E6EB] px-2 font-semibold text-center sticky left-0 bg-[var(--bg-subtle)] z-20 shrink-0">
-              #
-            </th>
-            {columns.map((col) => {
+            {showIndexColumn && (
+              <th className="h-9 w-12 border-r border-[#E5E6EB] px-2 font-semibold text-center sticky left-0 bg-[var(--bg-subtle)] z-20 shrink-0">
+                #
+              </th>
+            )}
+            {columns.map((col, colIdx) => {
               const width = columnWidths[col.id] || col.width || 150;
+              const isFirstSticky = stickyFirstColumn && !showIndexColumn && colIdx === 0;
+              const isSortable = onSort && col.sortable !== false;
               return (
                 <th
                   key={col.id}
                   className={cn(
                     'relative h-9 border-r border-[#E5E6EB] px-3 font-semibold text-left last:border-r-0 select-none group',
-                    onSort && 'cursor-pointer hover:bg-[var(--border-soft)]'
+                    isFirstSticky && 'sticky left-0 z-20 bg-[var(--bg-subtle)] shadow-[1px_0_0_0_#E5E6EB]',
+                    isSortable && 'cursor-pointer hover:bg-[var(--border-soft)]'
                   )}
                   style={{ width: `${width}px`, minWidth: `${col.minWidth || 50}px` }}
-                  onClick={() => onSort?.(col.id)}
+                  onClick={() => {
+                    if (isSortable) {
+                      onSort?.(col.id);
+                    }
+                  }}
                 >
-                  <div className="truncate pr-2">{col.header}</div>
+                  <div className="flex items-center justify-between gap-1 pr-2">
+                    <span className="truncate">{col.header}</span>
+                    {isSortable && (
+                      <span className="shrink-0 text-black">
+                        {sortColumn === col.id ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-30 group-hover:opacity-70 transition-opacity" />
+                        )}
+                      </span>
+                    )}
+                  </div>
                   {/* Resizer Handle */}
                   <div
                     className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize z-30 hover:bg-[var(--primary)] active:bg-[var(--primary)] transition-colors opacity-0 group-hover:opacity-100"
@@ -187,18 +220,25 @@ function DataGrid<TData>({
                   onRowSelect && 'cursor-pointer'
                 )}
               >
-                <td className={cn(
-                  'border-r border-[#E5E6EB] px-2 text-center sticky left-0 shrink-0 font-medium',
-                  isSelected ? 'bg-[var(--primary)] text-white' : 'bg-white'
-                )}>
-                  {idx + 1}
-                </td>
-                {columns.map((col) => {
+                {showIndexColumn && (
+                  <td className={cn(
+                    'border-r border-[#E5E6EB] px-2 text-center sticky left-0 shrink-0 font-medium',
+                    isSelected ? 'bg-[var(--primary)] text-white' : 'bg-white'
+                  )}>
+                    {idx + 1}
+                  </td>
+                )}
+                {columns.map((col, colIdx) => {
                   const width = columnWidths[col.id] || col.width || 150;
+                  const isFirstSticky = stickyFirstColumn && !showIndexColumn && colIdx === 0;
                   return (
                     <td
                       key={col.id}
-                      className="border-r border-[#E5E6EB] px-3 py-1.5 last:border-r-0 overflow-hidden"
+                      className={cn(
+                        'border-r border-[#E5E6EB] px-3 py-1.5 last:border-r-0 overflow-hidden',
+                        isFirstSticky && 'sticky left-0 z-10 shadow-[1px_0_0_0_#E5E6EB]',
+                        isFirstSticky && (isSelected ? 'bg-[var(--primary-softer)]' : 'bg-white group-hover:bg-[var(--bg-subtle)]')
+                      )}
                       style={{ width: `${width}px`, maxWidth: `${width}px` }}
                     >
                       {col.cell ? col.cell({ row, index: idx }) : (col.accessorKey ? <div className="truncate">{String(row[col.accessorKey] ?? '-')}</div> : null)}
