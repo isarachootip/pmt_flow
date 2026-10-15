@@ -15,12 +15,12 @@ import { formatDMY, format24HourTimeBadge } from '@/lib/date';
 
 export default function QcPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialJobNo = searchParams.get('jobNo') || '';
+  const initialJobNo = searchParams.get('jobNo') || searchParams.get('jobId') || '';
   const initialType = searchParams.get('type')?.toLowerCase();
 
   // Tab: 'quick' (Online) vs 'renovate' (On-site)
   const [activeQcTab, setActiveQcTab] = useState<'quick' | 'renovate'>(() => {
-    if (initialType === 'renovate' || (initialJobNo.includes('-R') || initialJobNo.startsWith('JOB-R'))) {
+    if (initialType === 'renovate' || initialType === 'r' || initialJobNo.includes('-R') || initialJobNo.startsWith('JOB-R')) {
       return 'renovate';
     }
     return 'quick';
@@ -40,27 +40,42 @@ export default function QcPage() {
 
   const confirmBooking = useConfirmBooking();
 
-  // Handle URL params on load or change
+  // Handle URL params on load or change with robust deep-linking
   useEffect(() => {
     const qJobNo = searchParams.get('jobNo');
+    const qJobId = searchParams.get('jobId');
     const qType = searchParams.get('type')?.toLowerCase();
-    if (qType === 'renovate') {
+    const targetIdentifier = qJobNo || qJobId;
+
+    if (qType === 'renovate' || qType === 'r') {
       setActiveQcTab('renovate');
-    } else if (qType === 'quick') {
+    } else if (qType === 'quick' || qType === 'q') {
       setActiveQcTab('quick');
     }
 
-    if (qJobNo) {
-      setSearchQuery(qJobNo);
+    if (targetIdentifier) {
+      setSearchQuery(targetIdentifier);
       if (allJobs.length > 0) {
-        const found = allJobs.find(j => j.job_no === qJobNo || String(j.id) === qJobNo);
+        const found = allJobs.find(
+          j => j.job_no === targetIdentifier || String(j.id) === String(targetIdentifier)
+        );
         if (found) {
           if (isQuickJob(found)) {
             setActiveQcTab('quick');
             setSelectedQuickJob(found);
           } else {
             setActiveQcTab('renovate');
-            setSelectedBooking({ job_id: found.id, job_no: found.job_no, customer: found.customer });
+            setSelectedBooking({
+              id: found.id,
+              job_id: found.id,
+              job_no: found.job_no,
+              customer: found.customer,
+              task_name: Array.isArray(found.services) ? found.services[0] : (found.services || 'งานปรับปรุงและติดตั้ง'),
+              booking_date: found.plan_date || found.created_at,
+              time_slot: found.plan_time || '09:00',
+              status: found.status === 'WAIT_QC' ? 'CONFIRMED' : 'PENDING',
+              inspector: (found as any).assigned_qc || 'วิชัย ตรวจดี (ช่าง QC Lead)'
+            });
           }
         }
       }
@@ -83,7 +98,7 @@ export default function QcPage() {
     if (!j) return false;
     if (isJobClosed(j)) return false;
     // Exclude new unaccepted jobs (they belong in Step 1: รับงาน)
-    if (j.status === 'NEW' || j.status === 'NEED_REVIEW' || j.status === 'DRAFT') return false;
+    if ((j.status === 'NEW' || j.status === 'NEED_REVIEW' || j.status === 'DRAFT') && !(j as any).pmt_accepted) return false;
     return true;
   };
 
@@ -98,12 +113,13 @@ export default function QcPage() {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter((j: any) => {
         const jNo = String(j.job_no || '').toLowerCase();
+        const jId = String(j.id || '').toLowerCase();
         const bNo = String(j.booking_no || (j as any).external_ref_id || '').toLowerCase();
         const cust = String(typeof j.customer === 'string' ? j.customer : j.customer?.name || '').toLowerCase();
         const phone = String(j.customer_phone || j.customer?.phone || '').toLowerCase();
         const tech = String(j.assigned_tech || '').toLowerCase();
         const svcs = Array.isArray(j.services) ? j.services.join(' ').toLowerCase() : String(j.services || '').toLowerCase();
-        return jNo.includes(q) || bNo.includes(q) || cust.includes(q) || phone.includes(q) || tech.includes(q) || svcs.includes(q);
+        return jNo.includes(q) || jId === q || bNo.includes(q) || cust.includes(q) || phone.includes(q) || tech.includes(q) || svcs.includes(q);
       });
     }
     return list;
@@ -136,10 +152,11 @@ export default function QcPage() {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter((b: any) => {
         const jobNo = String(b.job_no || '').toLowerCase();
+        const jobId = String(b.job_id || b.id || '').toLowerCase();
         const cust = String(typeof b.customer === 'string' ? b.customer : b.customer?.name || '').toLowerCase();
         const task = String(b.task_name || '').toLowerCase();
         const inspector = String(b.inspector || '').toLowerCase();
-        return jobNo.includes(q) || cust.includes(q) || task.includes(q) || inspector.includes(q);
+        return jobNo.includes(q) || jobId === q || cust.includes(q) || task.includes(q) || inspector.includes(q);
       });
     }
     return list;

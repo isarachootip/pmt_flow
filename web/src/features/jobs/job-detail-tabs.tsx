@@ -250,7 +250,7 @@ export function JobDetailTabs({
           if (jt === 'Q') {
             toast.success(res?.message || 'รับงานประเภท Quick Service เรียบร้อยแล้ว');
             toast.info('งาน Quick Service: นำทางสู่เมนู Step 3: QC (ตรวจงาน Online) ทันที');
-            navigate(`/qc?type=quick&jobNo=${job.job_no}`);
+            navigate(`/qc?type=quick&jobId=${job.id}&jobNo=${job.job_no}`);
           } else if (jt === 'R') {
             toast.success(res?.message || 'รับงาน Renovate เข้าสู่ระบบและสร้างผัง Gantt เรียบร้อยแล้ว');
             toast.info('เปิดหน้าจอแผนงาน Gantt เพื่อเริ่มดำเนินงานและทำการจอง QC ต่อในระบบ');
@@ -276,7 +276,7 @@ export function JobDetailTabs({
           if (jt === 'Q') {
             toast.success(`รับงานประเภท Q (Quick Service) เรียบร้อยแล้ว`);
             toast.info('งาน Quick Service: นำทางสู่เมนู Step 3: QC (ตรวจงาน Online) ทันที');
-            navigate(`/qc?type=quick&jobNo=${job.job_no}`);
+            navigate(`/qc?type=quick&jobId=${job.id}&jobNo=${job.job_no}`);
           } else if (jt === 'R') {
             toast.success(`รับงานประเภท R (Renovate) และสร้างผัง Gantt เรียบร้อยแล้ว`);
             toast.info('เปิดหน้าจอแผนงาน Gantt เพื่อเริ่มดำเนินงานและทำการจอง QC ต่อในระบบ');

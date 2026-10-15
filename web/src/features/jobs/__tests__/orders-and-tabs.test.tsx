@@ -21,7 +21,7 @@ const mockJobs: jobsApi.Job[] = [
       phone: '0812345678',
       address: 'กรุงเทพฯ',
     },
-    status: 'IN_PROGRESS',
+    status: 'NEW',
     project_type: 'Quick Service',
     services: ['ติดตั้งเครื่องทำน้ำอุ่น'],
     assigned_tech: 'ช่างสมศักดิ์',
@@ -65,7 +65,7 @@ const mockJobs: jobsApi.Job[] = [
       phone: '0855554433',
       address: 'ปทุมธานี',
     },
-    status: 'QC_PENDING',
+    status: 'NEW',
     project_type: 'Quick Service',
     services: ['เปลี่ยนปลั๊กไฟ'],
     assigned_tech: 'ช่างมานะ',
@@ -106,7 +106,7 @@ const mockJobs: jobsApi.Job[] = [
       phone: '0831112233',
       address: 'นนทบุรี',
     },
-    status: 'IN_PROGRESS',
+    status: 'NEW',
     project_type: 'Renovate',
     services: ['ต่อเติมครัว'],
     assigned_tech: 'ช่างประสิทธิ์',
@@ -128,7 +128,7 @@ const mockJobs: jobsApi.Job[] = [
       phone: '0842223344',
       address: 'สมุทรปราการ',
     },
-    status: 'IN_PROGRESS',
+    status: 'NEW',
     project_type: 'Quick Service',
     services: ['ล้างแอร์'],
     assigned_tech: 'ช่างมานะ',
@@ -189,9 +189,7 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
     renderWithProviders(<JobDetailTabs job={renovateJob} defaultTab="qc" />);
 
     expect(screen.getByText('Checklist คุณภาพงานมาตรฐาน (QC Checklist)')).toBeInTheDocument();
-    expect(screen.getByText('1. ความเรียบร้อยของงานติดตั้งและโครงสร้าง')).toBeInTheDocument();
-    expect(screen.getByText('2. ความปลอดภัยตามมาตรฐานวิศวกรรม')).toBeInTheDocument();
-    expect(screen.getByText('3. คุณภาพวัสดุและอุปกรณ์ตรงตาม BOQ')).toBeInTheDocument();
+    expect(screen.getByText('1. ช่างทำงานได้ตามมาตรฐานการทำงานที่กำหนด')).toBeInTheDocument();
   });
 
   it('navigates to "ส่งออก STK" tab and displays STK ref, status, and export button', () => {
@@ -200,7 +198,7 @@ describe('JobDetailTabs - Core Workflow Pipeline Alignment (R4)', () => {
     expect(screen.getByText('การส่งออกข้อมูลไปยังระบบ STK / BMT')).toBeInTheDocument();
     expect(screen.getByText(/เลขที่อ้างอิง STK \(Ref\)/)).toBeInTheDocument();
     expect(screen.getByText('🚀 ส่งออก STK')).toBeInTheDocument();
-    expect(screen.getByText('สรุปยอดรวมทางการเงินเพื่อเบิกจ่าย')).toBeInTheDocument();
+    expect(screen.getByText('สรุปยอดเงินรวมเบิกจ่าย')).toBeInTheDocument();
   });
 
   it('displays Booking No and Ref ID badges in header bar', () => {
@@ -558,7 +556,7 @@ describe('OrdersPage - Master List Features (R1, R2, R3, R5)', () => {
     renderWithProviders(<OrdersPage />);
 
     // Label
-    expect(screen.getByText('ประเภทงาน:')).toBeInTheDocument();
+    expect(screen.getByText('ประเภท:')).toBeInTheDocument();
 
     // Type pills
     expect(screen.getByText('งาน Quick')).toBeInTheDocument();

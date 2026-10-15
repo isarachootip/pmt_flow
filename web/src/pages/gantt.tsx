@@ -56,14 +56,25 @@ export default function GanttPage() {
   });
   const rawJobs: Job[] = Array.isArray(data) ? data : (data?.data || []);
 
+  const targetJobNo = paramJobNo || searchParams.get('jobNo');
+  const targetJobId = searchParams.get('jobId');
+
   // Step 2 Project & Gantt: Strictly display ONLY Renovate jobs (งาน R) that have been accepted and moved to Step 2
+  // Or the explicitly targeted job via deep-linking
   const renovateJobs: Job[] = React.useMemo(() => {
-    return rawJobs.filter(j => 
-      !isJobClosed(j) && 
-      getJobType(j) === 'R' && 
-      (j.status !== 'NEW' && j.status !== 'NEED_REVIEW' || (j as any).pmt_accepted)
-    );
-  }, [rawJobs]);
+    return rawJobs.filter(j => {
+      const isTarget = Boolean(
+        (targetJobNo && (j.job_no === targetJobNo || String(j.id) === targetJobNo)) ||
+        (targetJobId && String(j.id) === String(targetJobId))
+      );
+      if (isTarget) return true;
+      return (
+        !isJobClosed(j) && 
+        getJobType(j) === 'R' && 
+        (j.status !== 'NEW' && j.status !== 'NEED_REVIEW' || (j as any).pmt_accepted)
+      );
+    });
+  }, [rawJobs, targetJobNo, targetJobId]);
 
   const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
 
@@ -162,17 +173,21 @@ export default function GanttPage() {
     const targetJobNo = paramJobNo || searchParams.get('jobNo');
     const targetJobId = searchParams.get('jobId');
 
-    if (filteredAndSortedJobs.length > 0) {
-      if (targetJobNo || targetJobId) {
-        const matched = filteredAndSortedJobs.find(
-          j => (targetJobNo && (j.job_no === targetJobNo || String(j.id) === targetJobNo)) ||
-               (targetJobId && String(j.id) === String(targetJobId))
-        );
-        if (matched) {
-          setSelectedJob(matched);
-          return;
-        }
+    if (targetJobNo || targetJobId) {
+      const matched = filteredAndSortedJobs.find(
+        j => (targetJobNo && (j.job_no === targetJobNo || String(j.id) === targetJobNo)) ||
+             (targetJobId && String(j.id) === String(targetJobId))
+      ) || renovateJobs.find(
+        j => (targetJobNo && (j.job_no === targetJobNo || String(j.id) === targetJobNo)) ||
+             (targetJobId && String(j.id) === String(targetJobId))
+      );
+      if (matched) {
+        setSelectedJob(matched);
+        return;
       }
+    }
+
+    if (filteredAndSortedJobs.length > 0) {
       // If none selected or current selection is not in list, auto-select first item
       if (!selectedJob || !filteredAndSortedJobs.some(j => j.id === selectedJob.id)) {
         setSelectedJob(filteredAndSortedJobs[0]);
@@ -180,12 +195,12 @@ export default function GanttPage() {
     } else {
       setSelectedJob(null);
     }
-  }, [paramJobNo, searchParams, filteredAndSortedJobs]);
+  }, [paramJobNo, searchParams, filteredAndSortedJobs, renovateJobs]);
 
   const handleRowClick = (row: Job) => {
     setSelectedJob(row);
     const tab = searchParams.get('tab') || 'gantt';
-    navigate(`/gantt?jobNo=${row.job_no}&tab=${tab}`, { replace: true });
+    navigate(`/gantt?jobNo=${row.job_no}&jobId=${row.id}&tab=${tab}`, { replace: true });
   };
 
   const columns: ColumnDef<Job>[] = [

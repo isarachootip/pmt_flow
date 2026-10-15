@@ -13,6 +13,8 @@ import { Search, Filter } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CreateJobDrawer } from '@/features/jobs/create-job-drawer';
 import { isQuickJob, isRenovateJob } from '@/features/jobs/job-active-workspace';
+import { useResponsive } from '@/lib/use-responsive';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 
 export default function OrdersPage() {
@@ -105,6 +107,7 @@ export default function OrdersPage() {
   }, [rawJobs]);
 
   const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
+  const { isMobile, isTablet, isDesktop } = useResponsive();
 
   // Sync selectedJob when jobs load or jobNo changes in URL
   React.useEffect(() => {
@@ -113,14 +116,28 @@ export default function OrdersPage() {
       if (found) {
         setSelectedJob(found);
       }
+    } else if (!jobNo) {
+      setSelectedJob(null);
     }
   }, [jobNo, allJobs]);
 
   const handleRowClick = (row: Job) => {
+    if (isMobile) {
+      // < 768px: Open as full page
+      navigate(`/jobs/${row.job_no}`);
+      return;
+    }
+
+    // >= 768px: Set selected job and update route to /orders/:jobNo
     setSelectedJob(row);
     if (row.job_no) {
       navigate(`/orders/${row.job_no}${location.search}`, { replace: true });
     }
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedJob(null);
+    navigate(`/orders${location.search}`, { replace: true });
   };
 
 
@@ -607,10 +624,46 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      {/* Responsive Layout Area */}
       <div className="flex-1 min-h-0 mt-1">
-        <MasterDetailLayout
-          pageKey="orders"
-          masterContent={
+        {isDesktop ? (
+          /* >= 1280px: list on left + detail panel on right (55/45 default) with vertical splitter */
+          <MasterDetailLayout
+            pageKey="orders_v2"
+            orientation="vertical"
+            defaultSplitRatio={0.55}
+            minMasterRatio={0.35}
+            minDetailRatio={0.30}
+            masterContent={
+              <DataGrid
+                columns={columns}
+                data={filteredAndSortedJobs}
+                isLoading={isLoading}
+                getRowId={(row) => String(row.id || row.job_no)}
+                onRowSelect={handleRowClick}
+                selectedRowId={selectedJob ? String(selectedJob.id || selectedJob.job_no) : undefined}
+              />
+            }
+            detailContent={
+              selectedJob ? (
+                <div className="flex flex-col h-full overflow-hidden">
+                  <div className="flex-1 min-h-0">
+                    <JobDetailTabs 
+                      job={selectedJob} 
+                      onClose={handleCloseDetail} 
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-full items-center justify-center text-black bg-card border border-soft rounded-xl shadow-card font-medium text-sm">
+                  เลือกรายการเพื่อดูรายละเอียด
+                </div>
+              )
+            }
+          />
+        ) : (
+          /* < 1280px (Tablet & Mobile): list takes full width */
+          <div className="h-full w-full">
             <DataGrid
               columns={columns}
               data={filteredAndSortedJobs}
@@ -619,29 +672,29 @@ export default function OrdersPage() {
               onRowSelect={handleRowClick}
               selectedRowId={selectedJob ? String(selectedJob.id || selectedJob.job_no) : undefined}
             />
-          }
-          detailContent={
-            selectedJob ? (
-              <div className="flex flex-col h-full overflow-hidden">
-
-                <div className="flex-1 min-h-0">
-                  <JobDetailTabs 
-                    job={selectedJob} 
-                    onClose={() => {
-                      setSelectedJob(null);
-                      navigate(`/orders${location.search}`, { replace: true });
-                    }} 
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex h-full items-center justify-center text-black bg-card border border-soft rounded-xl shadow-card font-medium">
-                เลือกรายการเพื่อดูรายละเอียด
-              </div>
-            )
-          }
-        />
+          </div>
+        )}
       </div>
+
+      {/* 768–1279px Tablet Slide-over Drawer (~70% width) */}
+      {isTablet && (
+        <Sheet open={Boolean(selectedJob)} onOpenChange={(open) => { if (!open) handleCloseDetail(); }}>
+          <SheetContent 
+            side="right" 
+            hideCloseButton={true}
+            className="w-full sm:w-[70vw] sm:max-w-[70vw] lg:max-w-[70vw] p-0 overflow-hidden flex flex-col bg-white border-l border-gray-300 shadow-2xl"
+          >
+            {selectedJob && (
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                <JobDetailTabs
+                  job={selectedJob}
+                  onClose={handleCloseDetail}
+                />
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Create Job Drawer */}
       <CreateJobDrawer
